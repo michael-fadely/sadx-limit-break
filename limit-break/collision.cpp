@@ -35,11 +35,12 @@ namespace CollisionList
 		Rings,
 		Unknown_8,
 		Chao,
+		COUNT
 	};
 }
 
-static std::vector<EntityData1*> entities[10]       = {};
-static std::vector<_CollisionInfo*> big_dummies[10] = {}; // TODO: actually update this. It's likely used for Gamma's targeting system.
+static std::vector<EntityData1*> entities[CollisionList::COUNT]       = {};
+static std::vector<_CollisionInfo*> big_dummies[CollisionList::COUNT] = {}; // TODO: actually update this. It's likely used for Gamma's targeting system.
 
 FunctionPointer(void, CheckCollision, (EntityData1 *a1, EntityData1 *a2), 0x0041FC30);
 FunctionPointer(void, CheckCollision_, (EntityData1 *a1, EntityData1 *a2), 0x0041B8B0);
@@ -48,7 +49,7 @@ FunctionPointer(void, DoSomeCollisionThing, (EntityData1*), 0x00418B60);
 
 DataPointer(int, IsChaoStage, 0x3B22E80);
 
-inline void __cdecl CheckSelfCollision(Uint32 num)
+static void __cdecl CheckSelfCollision(Uint32 num)
 {
 	auto& list = entities[num];
 
