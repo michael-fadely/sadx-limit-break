@@ -42,13 +42,6 @@ namespace CollisionList
 static std::vector<EntityData1*> entities[CollisionList::COUNT]       = {};
 static std::vector<_CollisionInfo*> big_dummies[CollisionList::COUNT] = {}; // TODO: actually update this. It's likely used for Gamma's targeting system.
 
-FunctionPointer(void, CheckCollision, (EntityData1 *a1, EntityData1 *a2), 0x0041FC30);
-FunctionPointer(void, CheckCollision_, (EntityData1 *a1, EntityData1 *a2), 0x0041B8B0);
-FunctionPointer(void, CheckCollision__, (EntityData1 *a1, EntityData1 *a2), 0x0041FEC0);
-FunctionPointer(void, DoSomeCollisionThing, (EntityData1*), 0x00418B60);
-
-DataPointer(int, IsChaoStage, 0x3B22E80);
-
 static void __cdecl CheckSelfCollision(Uint32 num)
 {
 	auto& list = entities[num];
@@ -95,7 +88,7 @@ static void __cdecl ClearLists_hook()
 	ClearLists();
 }
 
-static void __cdecl AddToCollisionList(EntityData1* entity)
+static void __cdecl AddToCollisionList_(EntityData1* entity)
 {
 	_CollisionInfo *collision; // edi@1
 	int v2; // ecx@3
@@ -129,7 +122,7 @@ static void __cdecl AddToCollisionList(EntityData1* entity)
 	}
 }
 
-static void __cdecl RunPlayerCollision()
+static void __cdecl RunPlayerCollision_()
 {
 	if (IsChaoStage)
 	{
@@ -160,7 +153,7 @@ static void __cdecl RunPlayerCollision()
 	}
 }
 
-static void __cdecl RunCollision_1()
+static void __cdecl RunCollision_1_()
 {
 	for (auto& i : entities[1])
 	{
@@ -183,7 +176,7 @@ static void __cdecl RunCollision_1()
 	}
 }
 
-static void __cdecl RunCollision_9()
+static void __cdecl RunCollision_9_()
 {
 	CheckSelfCollision(9);
 
@@ -204,7 +197,7 @@ static void __cdecl RunCollision_9()
 	}
 }
 
-static void __cdecl RunCollision_3()
+static void __cdecl RunCollision_3_()
 {
 	CheckSelfCollision(3);
 
@@ -217,7 +210,7 @@ static void __cdecl RunCollision_3()
 	}
 }
 
-static void __cdecl RunCollision_4()
+static void __cdecl RunCollision_4_()
 {
 	for (auto& i : entities[4])
 	{
@@ -226,7 +219,7 @@ static void __cdecl RunCollision_4()
 	}
 }
 
-static void __cdecl RunCollision_5()
+static void __cdecl RunCollision_5_()
 {
 	CheckSelfCollision(5);
 }
@@ -235,11 +228,11 @@ void Collision_Init()
 {
 	WriteJump((void*)0x0041B970, ClearLists);
 	WriteCall((void*)0x004207A7, ClearLists_hook);
-	WriteJump((void*)0x0041C280, AddToCollisionList);
-	WriteJump((void*)0x00420010, RunPlayerCollision);
-	WriteJump((void*)0x00420210, RunCollision_1);
-	WriteJump((void*)0x004203C0, RunCollision_9);
-	WriteJump((void*)0x00420560, RunCollision_3);
-	WriteJump((void*)0x00420640, RunCollision_4);
-	WriteJump((void*)0x004206A0, RunCollision_5);
+	WriteJump((void*)0x0041C280, AddToCollisionList_);
+	WriteJump((void*)0x00420010, RunPlayerCollision_);
+	WriteJump((void*)0x00420210, RunCollision_1_);
+	WriteJump((void*)0x004203C0, RunCollision_9_);
+	WriteJump((void*)0x00420560, RunCollision_3_);
+	WriteJump((void*)0x00420640, RunCollision_4_);
+	WriteJump((void*)0x004206A0, RunCollision_5_);
 }

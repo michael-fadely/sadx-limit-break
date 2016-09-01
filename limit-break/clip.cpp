@@ -31,10 +31,10 @@ static void set_clip(float r, ClipType type)
 	clip_current = clip_max;
 }
 
-static int __cdecl ClipSetObject(ObjectMaster* a1)
+static int __cdecl ClipSetObject_(ObjectMaster* a1)
 {
 	int result;
-	auto v1 = GET_SET(a1);
+	auto v1 = a1->SETData;
 
 	if (v1)
 		set_clip(v1->Distance, ClipType::Clip);
@@ -84,8 +84,8 @@ static void __declspec(naked) ObjectInRangeHax()
 
 void Clip_Init()
 {
-	WriteJump((void*)0x0046C360, ClipSetObject);
-	WriteJump((void*)0x0046C390, ClipSetObject);
+	WriteJump((void*)0x0046C360, ClipSetObject_);
+	WriteJump((void*)0x0046C390, ClipSetObject_);
 	WriteCall((void*)0x0046BBB9, ObjectInRangeHax);
 	WriteData((float**)0x0046B6F8, &clip_current);
 	WriteData((float**)0x0046B713, &clip_current);

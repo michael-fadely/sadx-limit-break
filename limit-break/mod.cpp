@@ -5,9 +5,9 @@
 #include "clip.h"
 #include "textures.h"
 
+// TODO: Fix in mod loader
 #define Next PreviousSibling
 #define Previous NextSibling
-#define SETData field_1C
 
 static short last_level = 0;
 static short last_act   = 0;
@@ -21,8 +21,6 @@ static Uint32 object_average        = 0;
 
 DataArray(ObjectMaster*, ObjectListThing, 0x03ABDBC4, 8);
 DataPointer(ObjectMaster*, MasterObjectArray, 0x03ABDBEC);
-FunctionPointer(void, FreeEntityCollision, (EntityData1*), 0x41C4E0);
-FunctionPointer(void, FreeWhateverField3CIs, (EntityData1*), 0x4187A0);
 
 static ObjectMaster* __cdecl AllocateObjectMaster_r(int index, ObjectFuncPtr LoadSub)
 {
@@ -168,11 +166,11 @@ FREE_DATA:
 		_this->UnknownB_ptr = nullptr;
 	}
 
-	auto set = GET_SET(_this);
+	auto set = _this->SETData;
 	if (set)
 	{
 		set->dword4 = 0;
-		_LOBYTE(GET_SET(_this)->Flags) &= 0xFEu;
+		_LOBYTE(set->Flags) &= 0xFEu;
 		_this->SETData = nullptr;
 	}
 
@@ -180,7 +178,6 @@ FREE_DATA:
 }
 
 static const Uint32 sprite_count = 3072;
-FunctionPointer(void, InitSpriteTable, (void*, Uint32), 0x00456B80);
 DataPointer(int, Display_SPR_TASK, 0x03B28118);
 static Uint8 table[80 * sprite_count];
 
