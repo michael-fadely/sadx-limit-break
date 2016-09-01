@@ -5,10 +5,6 @@
 #include "clip.h"
 #include "textures.h"
 
-// TODO: Fix in mod loader
-#define Next PreviousSibling
-#define Previous NextSibling
-
 static short last_level = 0;
 static short last_act   = 0;
 
