@@ -184,16 +184,21 @@ static void __cdecl InitSpriteTable_r(void*, Uint32)
 	Display_SPR_TASK = 1;
 }
 
-// TODO: average
 using namespace std;
 using namespace chrono;
-using FrameRatio = duration<long, ratio<1, 60>>;
+
+using FrameRatio = duration<double, ratio<1, 60>>;
 
 static auto frame_start = system_clock::now();
 static auto frame_ratio = FrameRatio{ 1 };
-static auto frame_max   = 0.0f;
-static auto frame_min   = FLT_MAX;
+static auto frame_dur   = 0.0;
+static auto frame_max   = 0.0;
+static auto frame_min   = DBL_MAX;
 static int last_multi   = 0;
+
+static Uint32 frametime_i = 0;
+constexpr Uint32 frametime_length = 60;
+static double frametime[frametime_length] = {};
 
 static void __cdecl SetFrameMultiplier(int a1)
 {
@@ -201,6 +206,8 @@ static void __cdecl SetFrameMultiplier(int a1)
 	{
 		last_multi = a1;
 		frame_ratio = FrameRatio{ a1 };
+		static duration<double, milli> temp = frame_ratio;
+		frame_dur = temp.count();
 	}
 }
 
@@ -210,7 +217,7 @@ static void __cdecl CustomDeltaSleep()
 		this_thread::yield();
 
 	auto now = system_clock::now();
-	duration<float, milli> dur = now - frame_start;
+	duration<double, milli> dur = now - frame_start;
 	frame_start = now;
 
 	auto frame_time = dur.count();
@@ -228,12 +235,25 @@ static void __cdecl CustomDeltaSleep()
 			frame_min = frame_time;
 	}
 
+	frametime[frametime_i++] = frame_time;
+	
+	double average = 0.0;
+	
+	for (Uint32 i = 0; i < frametime_i; i++)
+	{
+		average += frametime[i];
+	}
+
+	if (frametime_i > 1)
+		average /= (double)frametime_i;
+	frametime_i %= frametime_length;
+
 	DisplayDebugStringFormatted(NJM_LOCATION(1, 11), "FRAME TIME NOW: %f", frame_time);
 	DisplayDebugStringFormatted(NJM_LOCATION(1, 12), "FRAME TIME MIN: %f", frame_min);
 	DisplayDebugStringFormatted(NJM_LOCATION(1, 13), "FRAME TIME MAX: %f", frame_max);
+	DisplayDebugStringFormatted(NJM_LOCATION(1, 14), "FRAME TIME AVG: %f", average);
 
-	// TODO: this needs a threshold
-	if (DemoPlaying || dur <= frame_ratio)
+	if (DemoPlaying || GameState < 15 || average - frame_dur < 0.1)
 		return;
 
 	DisplayDebugStringFormatted(NJM_LOCATION(1, 10), "REDUCING");
@@ -280,6 +300,7 @@ extern "C"
 			last_act     = CurrentAct;
 			clip_current = clip_default;
 			clip_max     = 0.0f;
+			frametime_i  = 0;
 		}
 
 		if (GameState == 15)
