@@ -1,8 +1,9 @@
 #include "stdafx.h"
-#include "misc.h"
 #include <SADXModLoader.h>
-#include "collision.h"
+#include <thread>
 #include "clip.h"
+#include "collision.h"
+#include "misc.h"
 #include "textures.h"
 
 static short last_level = 0;
@@ -183,19 +184,85 @@ static void __cdecl InitSpriteTable_r(void*, Uint32)
 	Display_SPR_TASK = 1;
 }
 
-using namespace std::chrono;
-static Uint32 last_frame = 0;
-
 // TODO: average
-constexpr auto max_time = duration<long, std::ratio<1, 30>>{ 1 };
-static time_point<system_clock> last_time;
+using namespace std;
+using namespace chrono;
+using FrameRatio = duration<long, ratio<1, 60>>;
 
+static auto frame_start = system_clock::now();
+static auto frame_ratio = FrameRatio{ 1 };
+static auto frame_max   = 0.0f;
+static auto frame_min   = FLT_MAX;
+static int last_multi   = 0;
+
+static void __cdecl SetFrameMultiplier(int a1)
+{
+	if (a1 != last_multi)
+	{
+		last_multi = a1;
+		frame_ratio = FrameRatio{ a1 };
+	}
+}
+
+static void __cdecl CustomDeltaSleep()
+{
+	while (system_clock::now() - frame_start < frame_ratio)
+		this_thread::yield();
+
+	auto now = system_clock::now();
+	duration<float, milli> dur = now - frame_start;
+	frame_start = now;
+
+	auto frame_time = dur.count();
+
+	if (ControllerPointers[0] && ControllerPointers[0]->PressedButtons & Buttons_C)
+	{
+		frame_max = 0.0f;
+		frame_min = FLT_MAX;
+	}
+	else
+	{
+		if (frame_time > frame_max)
+			frame_max = frame_time;
+		if (frame_time < frame_min)
+			frame_min = frame_time;
+	}
+
+	DisplayDebugStringFormatted(NJM_LOCATION(1, 11), "FRAME TIME NOW: %f", frame_time);
+	DisplayDebugStringFormatted(NJM_LOCATION(1, 12), "FRAME TIME MIN: %f", frame_min);
+	DisplayDebugStringFormatted(NJM_LOCATION(1, 13), "FRAME TIME MAX: %f", frame_max);
+
+	// TODO: this needs a threshold
+	if (DemoPlaying || dur <= frame_ratio)
+		return;
+
+	DisplayDebugStringFormatted(NJM_LOCATION(1, 10), "REDUCING");
+
+	if (clip_max == 0.0f)
+		clip_max = clip_current;
+
+	if (clip_max > clip_default)
+	{
+		clip_max -= clip_default;
+		if (clip_max < clip_default)
+			clip_max = clip_default;
+	}
+	else
+	{
+		clip_max = 0.0f;
+		clip_current = clip_default;
+	}
+}
 extern "C"
 {
 	__declspec(dllexport) ModInfo SADXModInfo = { ModLoaderVer };
 
 	__declspec(dllexport) void __cdecl Init()
 	{
+		// Custom frame limiter
+		WriteJump((void*)0x007899E0, CustomDeltaSleep);
+		WriteJump((void*)0x007899A0, SetFrameMultiplier);
+
 		WriteJump((void*)AllocateObjectMasterPtr, AllocateObjectMaster_asm);
 		WriteJump(DeleteObjectMaster, DeleteObjectMaster_r);
 		WriteCall((void*)0x00415A60, InitSpriteTable_r);
@@ -213,44 +280,7 @@ extern "C"
 			last_act     = CurrentAct;
 			clip_current = clip_default;
 			clip_max     = 0.0f;
-			last_frame   = 0;
 		}
-
-		if ((GameState == 15 || GameState == 16) && last_frame != FrameCounter)
-		{
-			if (!last_frame)
-			{
-				last_time = system_clock::now();
-			}
-			else
-			{
-				auto now = system_clock::now();
-				auto dur = now - last_time;
-				last_time = now;
-
-				if (dur > max_time)
-				{
-					DisplayDebugStringFormatted(NJM_LOCATION(1, 10), "REDUCING");
-
-					if (clip_max == 0.0f)
-						clip_max = clip_current;
-					
-					if (clip_max > clip_default)
-					{
-						clip_max -= clip_default;
-						if (clip_max < clip_default)
-							clip_max = clip_default;
-					}
-					else
-					{
-						clip_max     = 0.0f;
-						clip_current = clip_default;
-					}
-				}
-			}
-		}
-
-		last_frame = FrameCounter;
 
 		if (GameState == 15)
 		{
