@@ -75,7 +75,7 @@ static void __cdecl ClearLists()
 {
 	Collision_Statistics();
 
-	for (Uint32 i = 0; i < 10; i++)
+	for (Uint32 i = 0; i < CollisionList::COUNT; i++)
 	{
 		entities[i].clear();
 		big_dummies[i].clear();
@@ -90,12 +90,11 @@ static void __cdecl ClearLists_hook()
 
 static void __cdecl AddToCollisionList_(EntityData1* entity)
 {
-	_CollisionInfo *collision; // edi@1
 	int v2; // ecx@3
 	bool isChaoStage; // eax@5
 	bool isPlayer; // zf@7
 
-	collision = reinterpret_cast<_CollisionInfo*>(entity->CollisionInfo);
+	auto collision = reinterpret_cast<_CollisionInfo*>(entity->CollisionInfo);
 	if (collision && collision->Object->MainSub != DeleteObjectMaster)
 	{
 		v2 = CurrentAct | (CurrentLevel << 8);
@@ -116,6 +115,7 @@ static void __cdecl AddToCollisionList_(EntityData1* entity)
 		{
 			if (std::find(entities[i].begin(), entities[i].end(), entity) == entities[i].end())
 				entities[i].push_back(entity);
+
 			if (std::find(big_dummies[i].begin(), big_dummies[i].end(), collision) == big_dummies[i].end())
 				big_dummies[i].push_back(collision);
 		}
