@@ -6,50 +6,102 @@
 #include "misc.h"
 #include "textures.h"
 
+using namespace std;
+using namespace chrono;
+
+using FrameRatio = duration<double, ratio<1, 60>>;
+
 static short last_level = 0;
 static short last_act   = 0;
 
-static Uint32 object_count = 0;
+static auto frame_start = system_clock::now();
+static auto frame_ratio = FrameRatio{ 1 };
+static auto frame_dur   = 0.0;
+static auto frame_max   = 0.0;
+static auto frame_min   = DBL_MAX;
+static int last_multi   = 0;
+
+static Uint32 frametime_i = 0;
+constexpr Uint32 frametime_length = 60;
+static double frametime[frametime_length] = {};
 
 static const Uint32 points_length   = 60;
 static Uint32 points[points_length] = {};
 static Uint32 points_i              = 0;
 static Uint32 object_average        = 0;
 
+static const Uint32 sprite_count = 3072;
+static Uint8 table[80 * sprite_count];
+
+static Uint32 object_count = 0;
+static deque<ObjectMaster> MasterObjectArray_r = {};
+static bool queue_initialized = false;
+
+VoidFunc(sub_51A740, 0x51A740);
+
 DataArray(ObjectMaster*, ObjectListThing, 0x03ABDBC4, 8);
 DataPointer(ObjectMaster*, MasterObjectArray, 0x03ABDBEC);
+DataPointer(ObjectMaster*, MasterObjectArray_Base, 0x03ABDBE4);
+DataPointer(ObjectMaster*, CurrentObject, 0x03ABDBF8);
+DataPointer(int, Display_SPR_TASK, 0x03B28118);
 
 static ObjectMaster* __cdecl AllocateObjectMaster_r(int index, ObjectFuncPtr LoadSub)
 {
 	if (index < 0 || index > 8)
 		return nullptr;
 
-	++object_count;
-	auto result = new ObjectMaster{};
-	result->MainSub = LoadSub;
+	auto result = MasterObjectArray;
+
+	if (++object_count == MasterObjectArray_r.size())
+	{
+		MasterObjectArray_r.push_back({});
+		result->Next = &MasterObjectArray_r.back();
+	}
+
+	auto next = result->Next;
+	if (next)
+	{
+		next->Previous = nullptr;
+	}
+	MasterObjectArray = next;
+
+	result->MainSub = LoadSub ? LoadSub : nullsub;
 
 	if (index != 7)
 	{
-		if (index > 7)
+		if (index == 8)
+		{
 			index = 7;
+		}
 
 		auto last = ObjectListThing[index];
-		bool static_object = last >= MasterObjectArray && last <= &MasterObjectArray[4095];
-
-		if (static_object)
-		{
-			PrintDebug("\a/!\\\tSTATIC OBJECT DETECTED\n");
-			last = nullptr;
-		}
-
 		if (last)
 		{
-			last->Previous = result;
-			result->Next = last;
-		}
+			result->Previous = nullptr;
+			result->Next     = last;
+			last->Previous   = result;
 
-		ObjectListThing[index] = result;
+			ObjectListThing[index] = result;
+		}
+		else
+		{
+			ObjectListThing[index] = result;
+
+			result->Next     = nullptr;
+			result->Previous = nullptr;
+		}
 	}
+
+	result->SETData      = nullptr;
+	result->Data1        = nullptr;
+	result->Data2        = nullptr;
+	result->UnknownA_ptr = nullptr;
+	result->UnknownB_ptr = nullptr;
+	result->DisplaySub   = nullptr;
+	result->DeleteSub    = nullptr;
+	result->Child        = nullptr;
+	result->Parent       = nullptr;
+	result->field_30     = 0;
 
 	return result;
 }
@@ -67,24 +119,56 @@ static void __declspec(naked) AllocateObjectMaster_asm()
 	}
 }
 
+static void __cdecl InitObjectQueue()
+{
+	MasterObjectArray_r.push_back({});
+
+	auto ptr = &MasterObjectArray_r.back();
+
+	MasterObjectArray_Base = ptr;
+	MasterObjectArray      = ptr;
+	CurrentObject          = nullptr;
+}
+
+static void __cdecl InitMasterObjectArray_r()
+{
+	sub_51A740();
+
+	if (!queue_initialized)
+	{
+		InitObjectQueue();
+		queue_initialized = true;
+	}
+
+	for (auto i = 0; i < ObjectListThing_Length; i++)
+		ObjectListThing[i] = nullptr;
+}
+
 static void __cdecl DeleteObjectMaster_r(ObjectMaster *_this)
 {
 	if (!NaiZoGola(_this))
+	{
 		return;
+	}
+
+	if (_this->DeleteSub)
+	{
+		_this->DeleteSub(_this);
+	}
 
 	--object_count;
 
-	if (_this->DeleteSub)
-		_this->DeleteSub(_this);
+	auto previous = _this->Previous;
+	auto next     = _this->Next;
 
-	auto previous     = _this->Previous;
-	auto next         = _this->Next;
 	_this->MainSub    = nullptr;
 	_this->DisplaySub = nullptr;
 	_this->DeleteSub  = nullptr;
 
 	if (_this->Child != nullptr)
+	{
 		DeleteChildObjects(_this);
+	}
 
 	if (!next)
 	{
@@ -98,20 +182,24 @@ static void __cdecl DeleteObjectMaster_r(ObjectMaster *_this)
 		if (_this->Parent)
 		{
 			if (next)
+			{
 				next->Previous = nullptr;
+			}
 
 			_this->Parent->Child = next;
 		}
 		else
 		{
 			if (next)
+			{
 				next->Previous = nullptr;
+			}
 
-			Uint32 i = 0;
+			auto i = 0;
 			while (_this != ObjectListThing[i])
 			{
 				++i;
-				if (i >= 8)
+				if (i >= ObjectListThing_Length)
 				{
 					goto FREE_DATA;
 				}
@@ -119,12 +207,13 @@ static void __cdecl DeleteObjectMaster_r(ObjectMaster *_this)
 
 			ObjectListThing[i] = next;
 		}
-
 		goto FREE_DATA;
 	}
 
 	if (!previous)
+	{
 		goto LABEL_11;
+	}
 
 	next->Previous = previous;
 	previous->Next = next;
@@ -167,38 +256,42 @@ FREE_DATA:
 	if (set)
 	{
 		set->dword4 = 0;
-		_LOBYTE(set->Flags) &= 0xFEu;
+		_LOBYTE(_this->SETData->Flags) &= 0xFEu;
 		_this->SETData = nullptr;
 	}
 
-	delete _this;
-}
+	auto master = MasterObjectArray;
+	MasterObjectArray = _this;
 
-static const Uint32 sprite_count = 3072;
-DataPointer(int, Display_SPR_TASK, 0x03B28118);
-static Uint8 table[80 * sprite_count];
+	if (master == nullptr)
+	{
+		_this->Next     = nullptr;
+		_this->Previous = nullptr;
+		_this->Child    = nullptr;
+		_this->Parent   = nullptr;
+	}
+	else
+	{
+		master->Previous = _this;
+		_this->Previous  = nullptr;
+		_this->Child     = nullptr;
+		_this->Parent    = nullptr;
+		_this->Next      = master;
+	}
+
+	// Clear the object queue if there are no objects checked out
+	if (!object_count)
+	{
+		MasterObjectArray_r.clear();
+		InitObjectQueue();
+	}
+}
 
 static void __cdecl InitSpriteTable_r(void*, Uint32)
 {
 	InitSpriteTable(table, sprite_count);
 	Display_SPR_TASK = 1;
 }
-
-using namespace std;
-using namespace chrono;
-
-using FrameRatio = duration<double, ratio<1, 60>>;
-
-static auto frame_start = system_clock::now();
-static auto frame_ratio = FrameRatio{ 1 };
-static auto frame_dur   = 0.0;
-static auto frame_max   = 0.0;
-static auto frame_min   = DBL_MAX;
-static int last_multi   = 0;
-
-static Uint32 frametime_i = 0;
-constexpr Uint32 frametime_length = 60;
-static double frametime[frametime_length] = {};
 
 static void __cdecl SetFrameMultiplier(int a1)
 {
@@ -283,6 +376,7 @@ extern "C"
 		WriteJump((void*)0x007899E0, CustomDeltaSleep);
 		WriteJump((void*)0x007899A0, SetFrameMultiplier);
 
+		WriteJump(InitMasterObjectArray, InitMasterObjectArray_r);
 		WriteJump((void*)AllocateObjectMasterPtr, AllocateObjectMaster_asm);
 		WriteJump(DeleteObjectMaster, DeleteObjectMaster_r);
 		WriteCall((void*)0x00415A60, InitSpriteTable_r);
@@ -321,7 +415,7 @@ extern "C"
 
 		points_i %= points_length;
 
-		DisplayDebugStringFormatted(NJM_LOCATION(1, 4), "COUNT: REAL/AVG: %03u / %03u", object_count, object_average);
+		DisplayDebugStringFormatted(NJM_LOCATION(1, 4), "COUNT: REAL/AVG/MAX: %03u / %03u / %03u", object_count, object_average, MasterObjectArray_r.size());
 		DisplayDebugStringFormatted(NJM_LOCATION(1, 5), "CLIP: %f", clip_current);
 		Textures_OnFrame();
 	}
