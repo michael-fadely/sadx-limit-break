@@ -58,7 +58,7 @@ static int __cdecl ClipSetObject_(ObjectMaster* a1)
 static int __cdecl _ObjectInRangeHax(NJS_VECTOR* v, float r, float z, float y, float x /*float x, float y, float z, float r*/)
 {
 	set_clip(r, ClipType::Draw);
-	return ObjectInRange(v, x, y, z, ControllerPointers[0]->HeldButtons & Buttons_Z ? r : (r > clip_current ? r : clip_current));
+	return ObjectInRange(v, x, y, z, (ControllerPointers[0]->HeldButtons & Buttons_Z) ? r : (r > clip_current ? r : clip_current));
 }
 
 static void __declspec(naked) ObjectInRangeHax()

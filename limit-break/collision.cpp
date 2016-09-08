@@ -90,16 +90,12 @@ static void __cdecl ClearLists_hook()
 
 static void __cdecl AddToCollisionList_(EntityData1* entity)
 {
-	int v2; // ecx@3
-	bool isChaoStage; // eax@5
-	bool isPlayer; // zf@7
-
 	auto collision = reinterpret_cast<_CollisionInfo*>(entity->CollisionInfo);
 	if (collision && collision->Object->MainSub != DeleteObjectMaster)
 	{
-		v2 = CurrentAct | (CurrentLevel << 8);
-		isChaoStage = BYTE1(v2) >= (signed int)LevelIDs_SSGarden && BYTE1(v2) <= (signed int)LevelIDs_ChaoRace;
-		isPlayer = collision->List == 0;
+		int v2 = CurrentAct | (CurrentLevel << 8);
+		bool isChaoStage = BYTE1(v2) >= (signed int)LevelIDs_SSGarden && BYTE1(v2) <= (signed int)LevelIDs_ChaoRace;
+		bool isPlayer = collision->List == 0;
 		IsChaoStage = isChaoStage;
 		if (!isPlayer || !isChaoStage)
 		{
