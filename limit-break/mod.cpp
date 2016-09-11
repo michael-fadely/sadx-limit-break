@@ -346,7 +346,8 @@ static void __cdecl CustomDeltaSleep()
 	DisplayDebugStringFormatted(NJM_LOCATION(1, 13), "FRAME TIME MAX: %f", frame_max);
 	DisplayDebugStringFormatted(NJM_LOCATION(1, 14), "FRAME TIME AVG: %f", average);
 
-	if (DemoPlaying || GameState < 15 || average - frame_dur < 0.1)
+	// Clip distance shouldn't be adjusted if we're on a menu or we're on/ahead of schedule
+	if (GameState == 21|| GameState == 16 || average - frame_dur < 0.1)
 		return;
 
 	DisplayDebugStringFormatted(NJM_LOCATION(1, 10), "REDUCING");
@@ -366,6 +367,7 @@ static void __cdecl CustomDeltaSleep()
 		clip_current = clip_default;
 	}
 }
+
 extern "C"
 {
 	__declspec(dllexport) ModInfo SADXModInfo = { ModLoaderVer };
@@ -381,6 +383,7 @@ extern "C"
 		WriteJump(DeleteObjectMaster, DeleteObjectMaster_r);
 		WriteCall((void*)0x00415A60, InitSpriteTable_r);
 		WriteCall((void*)0x0040B011, PrintDebug);
+
 		Collision_Init();
 		Clip_Init();
 		Textures_Init();
