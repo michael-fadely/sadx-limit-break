@@ -352,6 +352,9 @@ static void __cdecl CustomDeltaSleep()
 
 	DisplayDebugStringFormatted(NJM_LOCATION(1, 10), "REDUCING");
 
+	// This will reset the average frame time upon reducing so we can re-evaluate performance
+	frametime_i = 0;
+
 	if (clip_max == 0.0f)
 		clip_max = clip_current;
 
