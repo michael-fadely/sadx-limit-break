@@ -30,7 +30,7 @@ static Uint32 points[points_length] = {};
 static Uint32 points_i              = 0;
 static Uint32 object_average        = 0;
 
-static const Uint32 sprite_count = 3072;
+static const Uint32 sprite_count = 4096;
 static Uint8 table[80 * sprite_count];
 
 static Uint32 object_count = 0;
@@ -394,7 +394,8 @@ extern "C"
 
 	__declspec(dllexport) void __cdecl OnFrame()
 	{
-		if (last_level != CurrentLevel || last_act != CurrentAct)
+		if (last_level != CurrentLevel || last_act != CurrentAct
+			|| ControllerPointers[0] && ControllerPointers[0]->PressedButtons & Buttons_C)
 		{
 			last_level   = CurrentLevel;
 			last_act     = CurrentAct;
