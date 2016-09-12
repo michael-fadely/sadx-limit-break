@@ -10,7 +10,7 @@ enum class ClipType
 const float clip_default = 168100.0f;
 
 float clip_current = clip_default;
-float clip_max     = 0.0f;
+float clip_max     = 0.0f; // this is written to externally
 
 static void __stdcall set_clip(float r, ClipType type)
 {
