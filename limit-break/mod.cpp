@@ -298,7 +298,7 @@ static void __cdecl SetFrameMultiplier(int a1)
 	if (a1 != last_multi)
 	{
 		last_multi = a1;
-		frame_ratio = FrameRatio{ a1 };
+		frame_ratio = FrameRatio(a1);
 		static duration<double, milli> temp = frame_ratio;
 		frame_dur = temp.count();
 	}
