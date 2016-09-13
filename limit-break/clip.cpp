@@ -87,6 +87,7 @@ static void __declspec(naked) ObjectInRange_asm()
 void Clip_Init()
 {
 	WriteJump((void*)ClipSetObject, ClipSetObject_r);
+	WriteJump((void*)0x0046C390, ClipSetObject_r);
 	WriteCall((void*)0x0046BBB9, ObjectInRange_asm);
 	WriteData((float**)0x0046B6F8, &clip_current);
 	WriteData((float**)0x0046B713, &clip_current);
