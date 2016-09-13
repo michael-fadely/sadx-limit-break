@@ -8,3 +8,4 @@
 #include "clip.h"
 #include "collision.h"
 #include "textures.h"
+#include "average.h"

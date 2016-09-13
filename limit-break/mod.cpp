@@ -13,17 +13,14 @@ using FrameRatio = duration<double, ratio<1, 60>>;
 
 static short last_level = 0;
 static short last_act   = 0;
-
+static int last_multi   = 0;
 static auto frame_start = system_clock::now();
-static auto frame_ratio = FrameRatio{ 1 };
+static auto frame_ratio = FrameRatio(1);
 static auto frame_dur   = 0.0;
 static auto frame_max   = 0.0;
 static auto frame_min   = DBL_MAX;
-static int last_multi   = 0;
-
-static Uint32 frametime_i = 0;
-constexpr Uint32 frametime_length = 60;
-static double frametime[frametime_length] = {};
+static auto perf_inc    = 1.75f; // 105 FPS
+static auto perf_dec    = 1.30f; //  78 FPS
 
 static const Uint32 points_length   = 60;
 static Uint32 points[points_length] = {};
@@ -44,6 +41,20 @@ DataPointer(ObjectMaster*, MasterObjectArray, 0x03ABDBEC);
 DataPointer(ObjectMaster*, MasterObjectArray_Base, 0x03ABDBE4);
 DataPointer(ObjectMaster*, CurrentObject, 0x03ABDBF8);
 DataPointer(int, Display_SPR_TASK, 0x03B28118);
+
+int inline FadeColor(Uint32 color_to, Uint32 color_from, float m)
+{
+	NJS_COLOR from = { color_from };
+	NJS_COLOR to   = { color_to };
+	NJS_COLOR result;
+
+	result.argb.a = from.argb.a + (Uint8)((to.argb.a - from.argb.a) * m);
+	result.argb.r = from.argb.r + (Uint8)((to.argb.r - from.argb.r) * m);
+	result.argb.g = from.argb.g + (Uint8)((to.argb.g - from.argb.g) * m);
+	result.argb.b = from.argb.b + (Uint8)((to.argb.b - from.argb.b) * m);
+
+	return result.color;
+}
 
 static ObjectMaster* __cdecl AllocateObjectMaster_r(int index, ObjectFuncPtr LoadSub)
 {
@@ -309,13 +320,51 @@ static void __cdecl SetFrameMultiplier(int a1)
 	}
 }
 
+static Average<float> perf_average(15);
+static Average<float> frame_average(60);
+static const float curve_max = 100'000.0f; // 168'100.0f is default
+static float curve = 1.0f;
+static auto delta = 1.0;
+
+inline void curve_reset()
+{
+	curve = 1.0f;
+}
+
+inline void curve_inc(float divisor = 1.0f)
+{
+	if (divisor < 1.0f)
+		divisor = 1.0f;
+
+	auto _max = (float)(curve_max / divisor * delta);
+
+	if (curve < _max)
+	{
+		curve *= 1.25f * (float)(min(_max / curve, 1.0f) * delta);
+	}
+
+	if (curve > _max)
+	{
+		curve = _max;
+	}
+
+	if (curve < 1.0f)
+		curve_reset();
+}
+
 static void __cdecl CustomDeltaSleep()
 {
-	while (system_clock::now() - frame_start < frame_ratio)
-		this_thread::yield();
-
 	auto now = system_clock::now();
 	duration<double, milli> dur = now - frame_start;
+	auto perf_ratio = frame_dur / dur.count();
+
+	while ((now = system_clock::now()) - frame_start < frame_ratio)
+	{
+	}
+
+	now = system_clock::now();
+	dur = now - frame_start;
+	delta = dur.count() / frame_dur;
 	frame_start = now;
 
 	auto frame_time = dur.count();
@@ -333,46 +382,64 @@ static void __cdecl CustomDeltaSleep()
 			frame_min = frame_time;
 	}
 
-	frametime[frametime_i++] = frame_time;
-	
-	double average = 0.0;
-	
-	for (Uint32 i = 0; i < frametime_i; i++)
+	auto last = DebugFontColor;
+	SetDebugFontColor(FadeColor(0xFF00FF00, 0xFFFF0000, (float)min(perf_ratio, 1.0)));
+	DisplayDebugStringFormatted(NJM_LOCATION(1, 11), "FRAME TIME NOW: %07.4f", frame_time);
+	DisplayDebugStringFormatted(NJM_LOCATION(1, 12), "FRAME TIME MIN: %07.4f", frame_min);
+	DisplayDebugStringFormatted(NJM_LOCATION(1, 13), "FRAME TIME MAX: %07.4f", frame_max);
+	DisplayDebugStringFormatted(NJM_LOCATION(1, 15), "FRAME PERF NOW: %07.4f", perf_ratio);
+
+	if (frame_average.add_point((float)frame_time))
 	{
-		average += frametime[i];
+		auto avg = frame_average.get_average();
+		SetDebugFontColor(FadeColor(0xFF00FF00, 0xFFFF0000, (float)min(frame_dur / avg, 1.0)));
+		DisplayDebugStringFormatted(NJM_LOCATION(1, 14), "FRAME TIME AVG: %07.4f (%05.2f FPS)", avg, 1000.0 / avg);
 	}
 
-	if (frametime_i > 1)
-		average /= (double)frametime_i;
-	frametime_i %= frametime_length;
+	SetDebugFontColor(last);
 
-	DisplayDebugStringFormatted(NJM_LOCATION(1, 11), "FRAME TIME NOW: %f", frame_time);
-	DisplayDebugStringFormatted(NJM_LOCATION(1, 12), "FRAME TIME MIN: %f", frame_min);
-	DisplayDebugStringFormatted(NJM_LOCATION(1, 13), "FRAME TIME MAX: %f", frame_max);
-	DisplayDebugStringFormatted(NJM_LOCATION(1, 14), "FRAME TIME AVG: %f", average);
-
-	// Clip distance shouldn't be adjusted if we're on a menu or we're on/ahead of schedule
-	if (GameState == 21|| GameState == 16 || average - frame_dur < 0.1)
-		return;
-
-	DisplayDebugStringFormatted(NJM_LOCATION(1, 10), "REDUCING");
-
-	// This will reset the average frame time upon reducing so we can re-evaluate performance
-	frametime_i = 0;
-
-	if (clip_max == 0.0f)
-		clip_max = clip_current;
-
-	if (clip_max > clip_default)
+	if (GameState == 21 || !perf_average.add_point((float)perf_ratio))
 	{
-		clip_max -= clip_default;
-		if (clip_max < clip_default)
-			clip_max = clip_default;
+		curve_reset();
+		return;
+	}
+
+	auto average = perf_average.get_average();
+
+	SetDebugFontColor(FadeColor(0xFF00FF00, 0xFFFF0000, (float)min(average, 1.0)));
+	DisplayDebugStringFormatted(NJM_LOCATION(1, 16), "FRAME PERF AVG: %07.4f", average);
+	SetDebugFontColor(last);
+
+	if (clip_limit == 0.0f)
+		clip_limit = clip_current;
+
+	if (average < perf_dec || perf_ratio < 1.0)
+	{
+		curve_inc(5.0f * (1.0f - (float)(average / perf_dec)));
+
+		if (!Clip_Decrease(curve))
+		{
+			curve_reset();
+			return;
+		}
+
+		SetDebugFontColor(0xFFFF0000);
+		DisplayDebugStringFormatted(NJM_LOCATION(1, 10), "- DECREASING: %07.4f", curve);
+		SetDebugFontColor(last);
 	}
 	else
 	{
-		clip_max = 0.0f;
-		clip_current = clip_default;
+		curve_inc(10.0f * (1.0f - clip_limit / clip_max));
+
+		if (average < perf_inc || !Clip_Increase(curve))
+		{
+			curve_reset();
+			return;
+		}
+
+		SetDebugFontColor(0xFF00FF00);
+		DisplayDebugStringFormatted(NJM_LOCATION(1, 10), "+ INCREASING: %07.4f", curve);
+		SetDebugFontColor(last);
 	}
 }
 
@@ -402,11 +469,9 @@ extern "C"
 		if (last_level != CurrentLevel || last_act != CurrentAct
 			|| ControllerPointers[0] && ControllerPointers[0]->PressedButtons & Buttons_C)
 		{
-			last_level   = CurrentLevel;
-			last_act     = CurrentAct;
-			clip_current = clip_default;
-			clip_max     = 0.0f;
-			frametime_i  = 0;
+			last_level = CurrentLevel;
+			last_act   = CurrentAct;
+			Clip_Reset();
 		}
 
 		if (GameState == 15)

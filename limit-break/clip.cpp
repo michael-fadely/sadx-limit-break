@@ -9,12 +9,22 @@ enum class ClipType
 
 const float clip_default = 168100.0f;
 
-float clip_current = clip_default;
-float clip_max     = 0.0f; // this is written to externally
+float clip_current    = clip_default;
+float clip_limit      = 0.0f; // this is written to externally
+float clip_min        = FLT_MAX;
+float clip_max        = 0.0f;
 
 static void __stdcall set_clip(float r, ClipType type)
 {
-	if ((clip_max == 0.0f || r < clip_max) && r > clip_current)
+	if (r < clip_min && r > clip_default)
+		clip_min = r;
+
+	if (r > clip_max)
+		clip_max = r;
+
+	// If the upper limit is 0, or if the provided distance is less than the limit,
+	// and if it exceeds the current clip distance, update it.
+	if ((clip_limit == 0.0f || r <= clip_limit) && r > clip_current)
 	{
 		if (type == ClipType::Clip)
 		{
@@ -29,12 +39,14 @@ static void __stdcall set_clip(float r, ClipType type)
 		return;
 	}
 
-	if (clip_max == 0.0f)
+	// Otherwise if the clip limit is 0, just abort
+	if (clip_limit == 0.0f)
 	{
 		return;
 	}
 
-	clip_current = clip_max;
+	// If the value exceeds the limit, use the limit as the current distance.
+	clip_current = clip_limit;
 }
 
 static int __cdecl ClipSetObject_r(ObjectMaster* a1)
@@ -69,27 +81,69 @@ static void __declspec(naked) ObjectInRange_asm()
 {
 	__asm
 	{
-		push[esp + 04h] // range
-		push[esp + 0Ch] // z
-		push[esp + 14h] // y
-		push[esp + 1Ch] // x
-		push ecx // from
-		call ObjectInRange_r
-		pop ecx // from
-		add esp, 4 // x
-		add esp, 4 // y
-		add esp, 4 // z
-		add esp, 4 // range
+		push    [esp + 04h]     // range
+		push    [esp + 0Ch]     // z
+		push    [esp + 14h]     // y
+		push    [esp + 1Ch]     // x
+		push    ecx             // from
+		call    ObjectInRange_r //
+		pop     ecx             // from
+		add     esp, 4          // x
+		add     esp, 4          // y
+		add     esp, 4          // z
+		add     esp, 4          // range
 		retn
 	}
 }
 
 void Clip_Init()
 {
-	WriteJump((void*)ClipSetObject, ClipSetObject_r);
-	WriteJump((void*)0x0046C390, ClipSetObject_r);
+	WriteJump(ClipSetObject, ClipSetObject_r);
+	WriteJump(ClipSetObject_Min, ClipSetObject_r);
 	WriteCall((void*)0x0046BBB9, ObjectInRange_asm);
 	WriteData((float**)0x0046B6F8, &clip_current);
 	WriteData((float**)0x0046B713, &clip_current);
 	WriteData((float**)0x0046B72D, &clip_current);
+}
+
+void Clip_Reset()
+{
+	clip_current = clip_default;
+	clip_limit   = 0.0f;
+	clip_min     = FLT_MAX;
+	clip_max     = 0.0f;
+}
+
+bool Clip_Increase(float inc)
+{
+	if (inc <= 0.0f || clip_limit >= clip_max)
+		return false;
+
+	clip_limit = min(clip_limit + inc, clip_max);
+	return true;
+}
+
+bool Clip_Decrease(float dec)
+{
+	if (dec <= 0.0f)
+		return false;
+
+	bool result;
+
+	if (clip_limit > clip_min)
+	{
+		clip_limit -= dec;
+		if (clip_limit < clip_min)
+			clip_limit = clip_min;
+
+		result = true;
+	}
+	else
+	{
+		clip_limit = clip_default;
+		result = false;
+	}
+
+	clip_current = min(clip_current, clip_limit);
+	return result;
 }

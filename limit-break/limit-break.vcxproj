@@ -84,6 +84,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="average.h" />
     <ClInclude Include="clip.h" />
     <ClInclude Include="collision.h" />
     <ClInclude Include="misc.h" />
