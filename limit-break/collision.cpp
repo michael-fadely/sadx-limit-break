@@ -56,8 +56,9 @@ static void __cdecl CheckSelfCollision(Uint32 num)
 	}
 }
 
-static void  __cdecl Collision_Statistics()
+static void __cdecl Collision_Statistics()
 {
+#ifdef _DEBUG
 	auto rows = (Uint32)(480.0f * VerticalStretch / DebugFontSize) - 1;
 	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 10),	"ENTITIES[0]: %3u [player]",		entities[0].size());
 	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 9),	"ENTITIES[1]: %3u",					entities[1].size());
@@ -69,6 +70,7 @@ static void  __cdecl Collision_Statistics()
 	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 3),	"ENTITIES[7]: %3u [rings]",			entities[7].size());
 	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 2),	"ENTITIES[8]: %3u",					entities[8].size());
 	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 1),	"ENTITIES[9]: %3u [chao]",			entities[9].size());
+#endif
 }
 
 static void __cdecl ClearLists()

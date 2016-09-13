@@ -290,7 +290,9 @@ FREE_DATA:
 static void __cdecl InitSpriteTable_r(void*, Uint32)
 {
 	InitSpriteTable(table, sprite_count);
+#ifdef _DEBUG
 	Display_SPR_TASK = 1;
+#endif
 }
 
 static void __cdecl SetFrameMultiplier(int a1)
@@ -301,6 +303,9 @@ static void __cdecl SetFrameMultiplier(int a1)
 		frame_ratio = FrameRatio(a1);
 		duration<double, milli> temp = frame_ratio;
 		frame_dur = temp.count();
+
+		frame_max = 0.0f;
+		frame_min = FLT_MAX;
 	}
 }
 
@@ -422,7 +427,9 @@ extern "C"
 
 		points_i %= points_length;
 
+#ifdef _DEBUG
 		DisplayDebugStringFormatted(NJM_LOCATION(1, 4), "COUNT: REAL/AVG/MAX: %03u / %03u / %03u", object_count, object_average, MasterObjectArray_r.size());
+#endif
 		DisplayDebugStringFormatted(NJM_LOCATION(1, 5), "CLIP: %f", clip_current);
 		Textures_OnFrame();
 	}
