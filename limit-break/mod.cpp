@@ -15,6 +15,7 @@ using FrameRatio = duration<double, ratio<1, 60>>;
 static auto last_level  = (short)0;
 static auto last_act    = (short)0;
 static auto last_multi  = (int)0;
+static auto dec_time    = (Uint32)0;
 static auto frame_start = system_clock::now();
 static auto frame_ratio = FrameRatio(1);
 static auto frame_dur   = 0.0;
@@ -325,10 +326,10 @@ static Average<float> perf_average(15);
 static Average<float> frame_average(60);
 static duration<double, milli> present = {};
 
-static const float curve_max = 100'000.0f; // 168'100.0f is default
-static float curve           = 1.0f;
-static float curve_multi     = 1.0f;
-static auto delta            = 1.0;
+static const auto curve_max = 100'000.0f; // 168'100.0f is default
+static auto curve           = 1.0f;
+static auto curve_multi     = 1.0f;
+static auto delta           = 1.0;
 
 inline void curve_reset()
 {
@@ -364,6 +365,7 @@ static void __cdecl Direct3D_Present_r()
 	present = system_clock::now() - start;
 }
 
+static bool enableFrameLimit = true;
 static void __cdecl CustomDeltaSleep()
 {
 	auto now = system_clock::now();
@@ -371,8 +373,11 @@ static void __cdecl CustomDeltaSleep()
 	duration<double, milli> dur = now - frame_start - present;
 	auto perf_ratio = frame_dur / dur.count();
 
-	while ((now = system_clock::now()) - frame_start < frame_ratio)
+	if (enableFrameLimit && present <= frame_ratio)
 	{
+		while ((now = system_clock::now()) - frame_start < frame_ratio)
+		{
+		}
 	}
 
 	now = system_clock::now();
@@ -413,6 +418,7 @@ static void __cdecl CustomDeltaSleep()
 
 	if (GameState == 21 || !perf_average.add_point((float)perf_ratio))
 	{
+		dec_time = 0;
 		curve_reset();
 		return;
 	}
@@ -428,17 +434,29 @@ static void __cdecl CustomDeltaSleep()
 
 	if (average < perf_dec || perf_ratio < 1.0)
 	{
-		curve_inc(1.0f - (float)(average / perf_dec));
-
-		if (!Clip_Decrease(curve))
+		// it's been a second, so let's just start over
+		// from the min draw distance and hopefully increase
+		// from there.
+		if (++dec_time >= (60 / last_multi))
 		{
+			dec_time = 0;
 			curve_reset();
-			return;
+			Clip_Reset();
 		}
+		else
+		{			
+			curve_inc(1.0f - (float)(average / perf_dec));
 
-		SetDebugFontColor(0xFFFF0000);
-		DisplayDebugStringFormatted(NJM_LOCATION(1, 10), "- DECREASING: %07.4f", curve);
-		SetDebugFontColor(last);
+			if (!Clip_Decrease(curve))
+			{
+				curve_reset();
+				return;
+			}
+
+			SetDebugFontColor(0xFFFF0000);
+			DisplayDebugStringFormatted(NJM_LOCATION(1, 10), "- DECREASING: %07.4f", curve);
+			SetDebugFontColor(last);
+		}
 	}
 	else
 	{
@@ -479,8 +497,14 @@ extern "C"
 
 	__declspec(dllexport) void __cdecl OnFrame()
 	{
+		auto pad = ControllerPointers[0];
+		if (pad && pad->HeldButtons & Buttons_R && pad->PressedButtons & Buttons_Y)
+		{
+			enableFrameLimit = !enableFrameLimit;
+		}
+
 		if (last_level != CurrentLevel || last_act != CurrentAct
-			|| ControllerPointers[0] && ControllerPointers[0]->PressedButtons & Buttons_C)
+			|| pad && pad->PressedButtons & Buttons_C)
 		{
 			last_level = CurrentLevel;
 			last_act   = CurrentAct;
