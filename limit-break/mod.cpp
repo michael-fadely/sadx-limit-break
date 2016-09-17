@@ -5,15 +5,16 @@
 #include "collision.h"
 #include "misc.h"
 #include "textures.h"
+#include "../sadx-mod-loader/libmodutils/Trampoline.h"
 
 using namespace std;
 using namespace chrono;
 
 using FrameRatio = duration<double, ratio<1, 60>>;
 
-static short last_level = 0;
-static short last_act   = 0;
-static int last_multi   = 0;
+static auto last_level  = (short)0;
+static auto last_act    = (short)0;
+static auto last_multi  = (int)0;
 static auto frame_start = system_clock::now();
 static auto frame_ratio = FrameRatio(1);
 static auto frame_dur   = 0.0;
@@ -325,6 +326,7 @@ static Average<float> frame_average(60);
 static const float curve_max = 100'000.0f; // 168'100.0f is default
 static float curve = 1.0f;
 static auto delta = 1.0;
+static duration<double, milli> present = {};
 
 inline void curve_reset()
 {
@@ -352,10 +354,21 @@ inline void curve_inc(float divisor = 1.0f)
 		curve_reset();
 }
 
+static void __cdecl Direct3D_Present_r();
+static Trampoline Direct3D_Present_trampoline(0x0078BA30, 0x0078BA35, Direct3D_Present_r);
+static void __cdecl Direct3D_Present_r()
+{
+	VoidFunc(original, Direct3D_Present_trampoline.Target());
+	auto start = system_clock::now();
+	original();
+	present = system_clock::now() - start;
+}
+
 static void __cdecl CustomDeltaSleep()
 {
 	auto now = system_clock::now();
-	duration<double, milli> dur = now - frame_start;
+
+	duration<double, milli> dur = now - frame_start - present;
 	auto perf_ratio = frame_dur / dur.count();
 
 	while ((now = system_clock::now()) - frame_start < frame_ratio)

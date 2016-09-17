@@ -9,3 +9,4 @@
 #include "collision.h"
 #include "textures.h"
 #include "average.h"
+#include "../sadx-mod-loader/libmodutils/Trampoline.h"
