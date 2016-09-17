@@ -20,8 +20,8 @@ static auto frame_ratio = FrameRatio(1);
 static auto frame_dur   = 0.0;
 static auto frame_max   = 0.0;
 static auto frame_min   = DBL_MAX;
-static auto perf_inc    = 1.75f; // 105 FPS
-static auto perf_dec    = 1.30f; //  78 FPS
+static auto perf_inc    = 1.75f; // 105 FPS - Draw distance increase threshold
+static auto perf_dec    = 1.30f; //  78 FPS - Draw distance decrease threshold
 
 static const Uint32 points_length   = 60;
 static Uint32 points[points_length] = {};
