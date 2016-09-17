@@ -323,26 +323,26 @@ static void __cdecl SetFrameMultiplier(int a1)
 
 static Average<float> perf_average(15);
 static Average<float> frame_average(60);
-static const float curve_max = 100'000.0f; // 168'100.0f is default
-static float curve = 1.0f;
-static auto delta = 1.0;
 static duration<double, milli> present = {};
+
+static const float curve_max = 100'000.0f; // 168'100.0f is default
+static float curve           = 1.0f;
+static float curve_multi     = 1.0f;
+static auto delta            = 1.0;
 
 inline void curve_reset()
 {
 	curve = 1.0f;
 }
 
-inline void curve_inc(float divisor = 1.0f)
+inline void curve_inc(float multiplier = 1.0f)
 {
-	if (divisor < 1.0f)
-		divisor = 1.0f;
-
-	auto _max = (float)(curve_max / divisor * delta);
+	curve_multi = max(0.1f, multiplier);
+	auto _max = (curve_max * curve_multi) * (float)delta;
 
 	if (curve < _max)
 	{
-		curve *= 1.25f * (float)(min(_max / curve, 1.0f) * delta);
+		curve *= max(1.0f, 1.25f * curve_multi) * (float)delta;
 	}
 
 	if (curve > _max)
@@ -428,7 +428,7 @@ static void __cdecl CustomDeltaSleep()
 
 	if (average < perf_dec || perf_ratio < 1.0)
 	{
-		curve_inc(5.0f * (1.0f - (float)(average / perf_dec)));
+		curve_inc(1.0f - (float)(average / perf_dec));
 
 		if (!Clip_Decrease(curve))
 		{
@@ -442,7 +442,7 @@ static void __cdecl CustomDeltaSleep()
 	}
 	else
 	{
-		curve_inc(10.0f * (1.0f - clip_limit / clip_max));
+		curve_inc((1.0f - clip_limit / clip_max) * (float)(perf_ratio / perf_inc));
 
 		if (average < perf_inc || !Clip_Increase(curve))
 		{
