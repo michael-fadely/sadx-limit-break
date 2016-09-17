@@ -14,7 +14,7 @@ using FrameRatio = duration<double, ratio<1, 60>>;
 
 static auto last_level  = (short)0;
 static auto last_act    = (short)0;
-static auto last_multi  = (int)0;
+static auto last_multi  = (Uint32)0;
 static auto dec_time    = (Uint32)0;
 static auto frame_start = system_clock::now();
 static auto frame_ratio = FrameRatio(1);
