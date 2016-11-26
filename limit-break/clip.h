@@ -14,6 +14,6 @@ extern const float clip_default;
 
 void Clip_Init();
 // Reset current clip distance and limit to defaults
-void Clip_Reset();
+void Clip_Reset(float limit = 0.0f);
 bool Clip_Increase(float inc);
 bool Clip_Decrease(float dec);

@@ -440,11 +440,10 @@ static void __cdecl CustomDeltaSleep()
 		if (++dec_time >= (60 / last_multi))
 		{
 			dec_time = 0;
-			curve_reset();
-			Clip_Reset();
+			Clip_Reset(clip_current);
 		}
 		else
-		{			
+		{
 			curve_inc(1.0f - (float)(average / perf_dec));
 
 			if (!Clip_Decrease(curve))

@@ -9,10 +9,10 @@ enum class ClipType
 
 const float clip_default = 168100.0f;
 
-float clip_current    = clip_default;
-float clip_limit      = 0.0f; // this is written to externally
-float clip_min        = FLT_MAX;
-float clip_max        = 0.0f;
+float clip_current = clip_default;
+float clip_limit   = 0.0f; // this is written to externally
+float clip_min     = FLT_MAX;
+float clip_max     = 0.0f;
 
 static void __stdcall set_clip(float r, ClipType type)
 {
@@ -106,10 +106,10 @@ void Clip_Init()
 	WriteData((float**)0x0046B72D, &clip_current);
 }
 
-void Clip_Reset()
+void Clip_Reset(float limit)
 {
 	clip_current = clip_default;
-	clip_limit   = 0.0f;
+	clip_limit   = limit;
 	clip_min     = FLT_MAX;
 	clip_max     = 0.0f;
 }
