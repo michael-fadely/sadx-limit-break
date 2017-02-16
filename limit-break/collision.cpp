@@ -86,7 +86,7 @@ static void __cdecl ClearLists()
 
 static void __cdecl ClearLists_hook()
 {
-	PopMatrix();
+	njPopMatrixEx();
 	ClearLists();
 }
 

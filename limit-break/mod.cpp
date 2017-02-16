@@ -5,24 +5,12 @@
 #include "collision.h"
 #include "misc.h"
 #include "textures.h"
-#include "../sadx-mod-loader/libmodutils/Trampoline.h"
 
 using namespace std;
 using namespace chrono;
 
-using FrameRatio = duration<double, ratio<1, 60>>;
-
 static auto last_level  = (short)0;
 static auto last_act    = (short)0;
-static auto last_multi  = (Uint32)0;
-static auto dec_time    = (Uint32)0;
-static auto frame_start = system_clock::now();
-static auto frame_ratio = FrameRatio(1);
-static auto frame_dur   = 0.0;
-static auto frame_max   = 0.0;
-static auto frame_min   = DBL_MAX;
-static auto perf_inc    = 1.75f; // 105 FPS - Draw distance increase threshold
-static auto perf_dec    = 1.30f; //  78 FPS - Draw distance decrease threshold
 
 static const Uint32 points_length   = 60;
 static Uint32 points[points_length] = {};
@@ -78,7 +66,7 @@ static ObjectMaster* __cdecl AllocateObjectMaster_r(int index, ObjectFuncPtr Loa
 	}
 	MasterObjectArray = next;
 
-	result->MainSub = LoadSub ? LoadSub : nullsub;
+	result->MainSub = LoadSub ? LoadSub : nullptr;
 
 	if (index != 7)
 	{
@@ -105,16 +93,16 @@ static ObjectMaster* __cdecl AllocateObjectMaster_r(int index, ObjectFuncPtr Loa
 		}
 	}
 
-	result->SETData      = nullptr;
-	result->Data1        = nullptr;
-	result->Data2        = nullptr;
-	result->UnknownA_ptr = nullptr;
-	result->UnknownB_ptr = nullptr;
-	result->DisplaySub   = nullptr;
-	result->DeleteSub    = nullptr;
-	result->Child        = nullptr;
-	result->Parent       = nullptr;
-	result->field_30     = 0;
+	result->SETData.SETData = nullptr;
+	result->Data1           = nullptr;
+	result->Data2           = nullptr;
+	result->UnknownA_ptr    = nullptr;
+	result->UnknownB_ptr    = nullptr;
+	result->DisplaySub      = nullptr;
+	result->DeleteSub       = nullptr;
+	result->Child           = nullptr;
+	result->Parent          = nullptr;
+	result->field_30        = 0;
 
 	return result;
 }
@@ -265,12 +253,12 @@ FREE_DATA:
 		_this->UnknownB_ptr = nullptr;
 	}
 
-	auto set = _this->SETData;
+	auto set = _this->SETData.SETData;
 	if (set)
 	{
 		set->dword4 = 0;
-		_LOBYTE(_this->SETData->Flags) &= 0xFEu;
-		_this->SETData = nullptr;
+		_LOBYTE(_this->SETData.SETData->Flags) &= 0xFEu;
+		_this->SETData.SETData = nullptr;
 	}
 
 	auto master = MasterObjectArray;
@@ -308,181 +296,12 @@ static void __cdecl InitSpriteTable_r(void*, Uint32)
 #endif
 }
 
-static void __cdecl SetFrameMultiplier(int a1)
-{
-	if (a1 != last_multi)
-	{
-		last_multi = a1;
-		frame_ratio = FrameRatio(a1);
-		duration<double, milli> temp = frame_ratio;
-		frame_dur = temp.count();
-
-		frame_max = 0.0f;
-		frame_min = FLT_MAX;
-	}
-}
-
-static Average<float> perf_average(15);
-static Average<float> frame_average(60);
-static duration<double, milli> present = {};
-
-static const auto curve_max = 100'000.0f; // 168'100.0f is default
-static auto curve           = 1.0f;
-static auto curve_multi     = 1.0f;
-static auto delta           = 1.0;
-
-inline void curve_reset()
-{
-	curve = 1.0f;
-}
-
-inline void curve_inc(float multiplier = 1.0f)
-{
-	curve_multi = max(0.1f, multiplier);
-	auto _max = (curve_max * curve_multi) * (float)delta;
-
-	if (curve < _max)
-	{
-		curve *= max(1.0f, 1.25f * curve_multi) * (float)delta;
-	}
-
-	if (curve > _max)
-	{
-		curve = _max;
-	}
-
-	if (curve < 1.0f)
-		curve_reset();
-}
-
-static void __cdecl Direct3D_Present_r();
-static Trampoline Direct3D_Present_trampoline(0x0078BA30, 0x0078BA35, Direct3D_Present_r);
-static void __cdecl Direct3D_Present_r()
-{
-	VoidFunc(original, Direct3D_Present_trampoline.Target());
-	auto start = system_clock::now();
-	original();
-	present = system_clock::now() - start;
-}
-
-static bool enableFrameLimit = true;
-static void __cdecl CustomDeltaSleep()
-{
-	auto now = system_clock::now();
-
-	duration<double, milli> dur = now - frame_start - present;
-	auto perf_ratio = frame_dur / dur.count();
-
-	if (enableFrameLimit && present <= frame_ratio)
-	{
-		while ((now = system_clock::now()) - frame_start < frame_ratio)
-		{
-		}
-	}
-
-	now = system_clock::now();
-	dur = now - frame_start;
-	delta = dur.count() / frame_dur;
-	frame_start = now;
-
-	auto frame_time = dur.count();
-
-	if (ControllerPointers[0] && ControllerPointers[0]->PressedButtons & Buttons_C)
-	{
-		frame_max = 0.0f;
-		frame_min = FLT_MAX;
-	}
-	else
-	{
-		if (frame_time > frame_max)
-			frame_max = frame_time;
-		if (frame_time < frame_min)
-			frame_min = frame_time;
-	}
-
-	auto last = DebugFontColor;
-	SetDebugFontColor(FadeColor(0xFF00FF00, 0xFFFF0000, (float)min(perf_ratio, 1.0)));
-	DisplayDebugStringFormatted(NJM_LOCATION(1, 11), "FRAME TIME NOW: %07.4f", frame_time);
-	DisplayDebugStringFormatted(NJM_LOCATION(1, 12), "FRAME TIME MIN: %07.4f", frame_min);
-	DisplayDebugStringFormatted(NJM_LOCATION(1, 13), "FRAME TIME MAX: %07.4f", frame_max);
-	DisplayDebugStringFormatted(NJM_LOCATION(1, 15), "FRAME PERF NOW: %07.4f", perf_ratio);
-
-	if (frame_average.add_point((float)frame_time))
-	{
-		auto avg = frame_average.get_average();
-		SetDebugFontColor(FadeColor(0xFF00FF00, 0xFFFF0000, (float)min(frame_dur / avg, 1.0)));
-		DisplayDebugStringFormatted(NJM_LOCATION(1, 14), "FRAME TIME AVG: %07.4f (%05.2f FPS)", avg, 1000.0 / avg);
-	}
-
-	SetDebugFontColor(last);
-
-	if (GameState == 21 || !perf_average.add_point((float)perf_ratio))
-	{
-		dec_time = 0;
-		curve_reset();
-		return;
-	}
-
-	auto average = perf_average.get_average();
-
-	SetDebugFontColor(FadeColor(0xFF00FF00, 0xFFFF0000, (float)min(average, 1.0)));
-	DisplayDebugStringFormatted(NJM_LOCATION(1, 16), "FRAME PERF AVG: %07.4f", average);
-	SetDebugFontColor(last);
-
-	if (clip_limit == 0.0f)
-		clip_limit = clip_current;
-
-	if (average < perf_dec || perf_ratio < 1.0)
-	{
-		// it's been a second, so let's just start over
-		// from the min draw distance and hopefully increase
-		// from there.
-		if (++dec_time >= (60 / last_multi))
-		{
-			dec_time = 0;
-			Clip_Reset(clip_current);
-		}
-		else
-		{
-			curve_inc(1.0f - (float)(average / perf_dec));
-
-			if (!Clip_Decrease(curve))
-			{
-				curve_reset();
-				return;
-			}
-
-			SetDebugFontColor(0xFFFF0000);
-			DisplayDebugStringFormatted(NJM_LOCATION(1, 10), "- DECREASING: %07.4f", curve);
-			SetDebugFontColor(last);
-		}
-	}
-	else
-	{
-		curve_inc((1.0f - clip_limit / clip_max) * (float)(perf_ratio / perf_inc));
-
-		if (average < perf_inc || !Clip_Increase(curve))
-		{
-			curve_reset();
-			return;
-		}
-
-		SetDebugFontColor(0xFF00FF00);
-		DisplayDebugStringFormatted(NJM_LOCATION(1, 10), "+ INCREASING: %07.4f", curve);
-		SetDebugFontColor(last);
-	}
-}
-
 extern "C"
 {
 	__declspec(dllexport) ModInfo SADXModInfo = { ModLoaderVer };
 
 	__declspec(dllexport) void __cdecl Init()
 	{
-		// Custom frame limiter
-		WriteJump((void*)0x007899E0, CustomDeltaSleep);
-		WriteJump((void*)0x007899A0, SetFrameMultiplier);
-
 		WriteJump(InitMasterObjectArray, InitMasterObjectArray_r);
 		WriteJump((void*)AllocateObjectMasterPtr, AllocateObjectMaster_asm);
 		WriteJump(DeleteObjectMaster, DeleteObjectMaster_r);
@@ -497,10 +316,6 @@ extern "C"
 	__declspec(dllexport) void __cdecl OnFrame()
 	{
 		auto pad = ControllerPointers[0];
-		if (pad && pad->HeldButtons & Buttons_R && pad->PressedButtons & Buttons_Y)
-		{
-			enableFrameLimit = !enableFrameLimit;
-		}
 
 		if (last_level != CurrentLevel || last_act != CurrentAct
 			|| pad && pad->PressedButtons & Buttons_C)

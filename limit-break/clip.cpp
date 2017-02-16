@@ -28,14 +28,14 @@ static void __stdcall set_clip(float r, ClipType type)
 	{
 		if (type == ClipType::Clip)
 		{
-			PrintDebug("CLIP: %f -> %f\n", clip_current, r);
+			//PrintDebug("CLIP: %f -> %f\n", clip_current, r);
 		}
 		else if (type == ClipType::Draw)
 		{
-			PrintDebug("DRAW: %f -> %f\n", clip_current, r);
+			//PrintDebug("DRAW: %f -> %f\n", clip_current, r);
 		}
 
-		clip_current = r;
+		//clip_current = r;
 		return;
 	}
 
@@ -51,7 +51,7 @@ static void __stdcall set_clip(float r, ClipType type)
 
 static int __cdecl ClipSetObject_r(ObjectMaster* a1)
 {
-	auto set = a1->SETData;
+	auto set = a1->SETData.SETData;
 
 	if (set)
 	{
@@ -108,9 +108,11 @@ void Clip_Init()
 
 void Clip_Reset(float limit)
 {
-	clip_current = clip_default;
+	// LevelDrawDistance
+	auto f = -*(float*)0x03ABDC74 * 0.5f;
+	clip_current = f * f;
 	clip_limit   = limit;
-	clip_min     = FLT_MAX;
+	clip_min     = clip_current;
 	clip_max     = 0.0f;
 }
 
