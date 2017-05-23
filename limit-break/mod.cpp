@@ -256,7 +256,7 @@ FREE_DATA:
 	auto set = _this->SETData.SETData;
 	if (set)
 	{
-		set->dword4 = 0;
+		set->ObjInstance = nullptr;
 		_LOBYTE(_this->SETData.SETData->Flags) &= 0xFEu;
 		_this->SETData.SETData = nullptr;
 	}
@@ -287,6 +287,8 @@ FREE_DATA:
 		InitObjectQueue();
 	}
 }
+
+FunctionPointer(void, InitSpriteTable, (/*QueuedModelParticle*/void *arr, int count), 0x00456B80);
 
 static void __cdecl InitSpriteTable_r(void*, Uint32)
 {
