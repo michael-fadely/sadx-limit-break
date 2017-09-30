@@ -85,7 +85,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\sadx-mod-loader\libmodutils\Trampoline.h" />
-    <ClInclude Include="average.h" />
     <ClInclude Include="clip.h" />
     <ClInclude Include="collision.h" />
     <ClInclude Include="misc.h" />

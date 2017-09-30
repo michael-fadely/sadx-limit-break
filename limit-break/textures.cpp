@@ -6,7 +6,7 @@
 FastcallFunctionPointer(void, Direct3D_PVRToD3D, (NJS_TEXMEMLIST*, void*), 0x0078CBD0);
 DataPointer(NJS_TEXMEMLIST*, CurrentTexMemList, 0x03CE7128);
 
-static std::deque<NJS_TEXMEMLIST> GlobalTextures;
+static std::deque<NJS_TEXMEMLIST> global_textures;
 
 inline void reset(NJS_TEXMEMLIST* memlist)
 {
@@ -32,9 +32,9 @@ inline void reset(NJS_TEXMEMLIST* memlist)
 
 static NJS_TEXMEMLIST* __cdecl _GetCachedTexture(Uint32 gbix)
 {
-	if (GlobalTextures.size())
+	if (global_textures.size())
 	{
-		for (auto& i : GlobalTextures)
+		for (auto& i : global_textures)
 		{
 			if (i.globalIndex == gbix)
 			{
@@ -43,7 +43,7 @@ static NJS_TEXMEMLIST* __cdecl _GetCachedTexture(Uint32 gbix)
 			}
 		}
 
-		for (auto& i : GlobalTextures)
+		for (auto& i : global_textures)
 		{
 			if (!i.count)
 			{
@@ -55,17 +55,17 @@ static NJS_TEXMEMLIST* __cdecl _GetCachedTexture(Uint32 gbix)
 
 	NJS_TEXMEMLIST memlist;
 	reset(&memlist);
-	GlobalTextures.push_back(memlist);
+	global_textures.push_back(memlist);
 
 	//PrintDebug("/!\\\tNEW SLOT FOR %u, %u COUNT\n", gbix, GlobalTextures.size());
-	return &GlobalTextures.back();
+	return &global_textures.back();
 }
 
 static Sint32 __cdecl sub_77FA10(Uint32 gbix, void* texture)
 {
 	auto result = -1;
 
-	for (auto& i : GlobalTextures)
+	for (auto& i : global_textures)
 	{
 		if (i.globalIndex == gbix)
 		{
@@ -81,15 +81,17 @@ static Sint32 __cdecl sub_77FA10(Uint32 gbix, void* texture)
 
 static void __cdecl _njReleaseTextureAll()
 {
-	for (auto& i : GlobalTextures)
+	for (auto& i : global_textures)
+	{
 		njReleaseTextureLow(&i);
+	}
 
-	GlobalTextures.clear();
+	global_textures.clear();
 }
 
 Sint32 __cdecl _njSetTextureNumG(Uint32 gbix, void* asdf)
 {
-	for (auto& i : GlobalTextures)
+	for (auto& i : global_textures)
 	{
 		if (i.globalIndex == gbix)
 		{

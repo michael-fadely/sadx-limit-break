@@ -30,9 +30,6 @@
     <ClInclude Include="textures.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="average.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\sadx-mod-loader\libmodutils\Trampoline.h">
       <Filter>Header Files</Filter>
     </ClInclude>

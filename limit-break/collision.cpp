@@ -11,12 +11,12 @@ struct _CollisionInfo
 	__int16 Flags;
 	__int16 Count;
 	float f8;
-	CollisionData *CollisionArray;
+	CollisionData* CollisionArray;
 	Uint8 field_10[140];
-	ObjectMaster *Object;
+	ObjectMaster* Object;
 	__int16 field_A0;
 	__int16 field_A2;
-	_CollisionInfo *CollidingObject;
+	_CollisionInfo* CollidingObject;
 };
 #pragma pack(pop)
 
@@ -39,8 +39,9 @@ namespace CollisionList
 	};
 }
 
-static std::vector<EntityData1*> entities[CollisionList::COUNT]       = {};
-static std::vector<_CollisionInfo*> big_dummies[CollisionList::COUNT] = {}; // TODO: actually update this. It's likely used for Gamma's targeting system.
+static std::vector<EntityData1*> entities[CollisionList::COUNT] = {};
+static std::vector<_CollisionInfo*> big_dummies[CollisionList::COUNT] = {};
+// TODO: actually update this. It's likely used for Gamma's targeting system.
 
 static void __cdecl CheckSelfCollision(Uint32 num)
 {
@@ -51,14 +52,16 @@ static void __cdecl CheckSelfCollision(Uint32 num)
 		for (Uint32 x = 0; x < list.size(); x++)
 		{
 			if (x != i)
+			{
 				CheckCollision(list[i], list[x]);
+			}
 		}
 	}
 }
 
 static void __cdecl Collision_Statistics()
 {
-#ifdef _DEBUG
+	#ifdef _DEBUG
 	auto rows = (Uint32)(480.0f * VerticalStretch / DebugFontSize) - 1;
 	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 10),	"ENTITIES[0]: %3u [player]",		entities[0].size());
 	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 9),	"ENTITIES[1]: %3u",					entities[1].size());
@@ -70,7 +73,7 @@ static void __cdecl Collision_Statistics()
 	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 3),	"ENTITIES[7]: %3u [rings]",			entities[7].size());
 	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 2),	"ENTITIES[8]: %3u",					entities[8].size());
 	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 1),	"ENTITIES[9]: %3u [chao]",			entities[9].size());
-#endif
+	#endif
 }
 
 static void __cdecl ClearLists()
@@ -92,30 +95,38 @@ static void __cdecl ClearLists_hook()
 
 static void __cdecl AddToCollisionList_(EntityData1* entity)
 {
-	auto collision = reinterpret_cast<_CollisionInfo*>(entity->CollisionInfo);
+	const auto collision = reinterpret_cast<_CollisionInfo*>(entity->CollisionInfo);
+
 	if (collision && collision->Object->MainSub != DeleteObjectMaster)
 	{
 		int v2 = CurrentAct | (CurrentLevel << 8);
-		bool isChaoStage = BYTE1(v2) >= (signed int)LevelIDs_SSGarden && BYTE1(v2) <= (signed int)LevelIDs_ChaoRace;
-		bool isPlayer = collision->List == 0;
-		IsChaoStage = isChaoStage;
-		if (!isPlayer || !isChaoStage)
+		bool is_chao_stage = BYTE1(v2) >= (signed int)LevelIDs_SSGarden && BYTE1(v2) <= (signed int)LevelIDs_ChaoRace;
+		bool is_player = collision->List == 0;
+		IsChaoStage = is_chao_stage;
+
+		if (!is_player || !is_chao_stage)
 		{
 			DoSomeCollisionThing(entity);
 		}
 
 		if (collision->List < 0 || collision->List > 9)
+		{
 			return;
+		}
 
-		auto i = collision->List;
+		const auto i = collision->List;
 
 		if (GameMode != GameModes_Menu)
 		{
 			if (std::find(entities[i].begin(), entities[i].end(), entity) == entities[i].end())
+			{
 				entities[i].push_back(entity);
+			}
 
 			if (std::find(big_dummies[i].begin(), big_dummies[i].end(), collision) == big_dummies[i].end())
+			{
 				big_dummies[i].push_back(collision);
+			}
 		}
 	}
 }
@@ -125,7 +136,9 @@ static void __cdecl RunPlayerCollision_()
 	if (IsChaoStage)
 	{
 		for (auto& i : entities[0])
+		{
 			DoSomeCollisionThing(i);
+		}
 	}
 
 	CheckSelfCollision(0);
@@ -213,7 +226,9 @@ static void __cdecl RunCollision_4_()
 	for (auto& i : entities[4])
 	{
 		for (auto& j : entities[5])
+		{
 			CheckCollision(i, j);
+		}
 	}
 }
 

@@ -17,10 +17,14 @@ float clip_max     = 0.0f;
 static void __stdcall set_clip(float r, ClipType type)
 {
 	if (r < clip_min && r > clip_default)
+	{
 		clip_min = r;
+	}
 
 	if (r > clip_max)
+	{
 		clip_max = r;
+	}
 
 	// If the upper limit is 0, or if the provided distance is less than the limit,
 	// and if it exceeds the current clip distance, update it.
@@ -109,17 +113,20 @@ void Clip_Init()
 void Clip_Reset(float limit)
 {
 	// LevelDrawDistance
-	auto f = -*(float*)0x03ABDC74 * 0.5f;
+	const auto f = -*(float*)0x03ABDC74 * 0.5f;
+
 	clip_current = f * f;
-	clip_limit   = limit;
-	clip_min     = clip_current;
-	clip_max     = 0.0f;
+	clip_limit = limit;
+	clip_min = clip_current;
+	clip_max = 0.0f;
 }
 
 bool Clip_Increase(float inc)
 {
 	if (inc <= 0.0f || clip_limit >= clip_max)
+	{
 		return false;
+	}
 
 	clip_limit = min(clip_limit + inc, clip_max);
 	return true;
@@ -128,15 +135,20 @@ bool Clip_Increase(float inc)
 bool Clip_Decrease(float dec)
 {
 	if (dec <= 0.0f)
+	{
 		return false;
+	}
 
 	bool result;
 
 	if (clip_limit > clip_min)
 	{
 		clip_limit -= dec;
+
 		if (clip_limit < clip_min)
+		{
 			clip_limit = clip_min;
+		}
 
 		result = true;
 	}

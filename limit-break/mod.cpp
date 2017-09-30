@@ -9,13 +9,13 @@
 using namespace std;
 using namespace chrono;
 
-static auto last_level  = (short)0;
-static auto last_act    = (short)0;
+static short last_level = 0;
+static short last_act = 0;
 
-static const Uint32 points_length   = 60;
+static const Uint32 points_length = 60;
 static Uint32 points[points_length] = {};
-static Uint32 points_i              = 0;
-static Uint32 object_average        = 0;
+static Uint32 points_i = 0;
+static Uint32 object_average = 0;
 
 static const Uint32 sprite_count = 4096;
 static Uint8 table[80 * sprite_count];
@@ -30,12 +30,15 @@ DataArray(ObjectMaster*, ObjectListThing, 0x03ABDBC4, 8);
 DataPointer(ObjectMaster*, MasterObjectArray, 0x03ABDBEC);
 DataPointer(ObjectMaster*, MasterObjectArray_Base, 0x03ABDBE4);
 DataPointer(ObjectMaster*, CurrentObject, 0x03ABDBF8);
+
+#ifdef _DEBUG
 DataPointer(int, Display_SPR_TASK, 0x03B28118);
+#endif
 
 int inline FadeColor(Uint32 color_to, Uint32 color_from, float m)
 {
 	NJS_COLOR from = { color_from };
-	NJS_COLOR to   = { color_to };
+	NJS_COLOR to = { color_to };
 	NJS_COLOR result;
 
 	result.argb.a = from.argb.a + (Uint8)((to.argb.a - from.argb.a) * m);
@@ -46,10 +49,13 @@ int inline FadeColor(Uint32 color_to, Uint32 color_from, float m)
 	return result.color;
 }
 
+// ReSharper disable once CppDeclaratorNeverUsed
 static ObjectMaster* __cdecl AllocateObjectMaster_r(int index, ObjectFuncPtr LoadSub)
 {
 	if (index < 0 || index > 8)
+	{
 		return nullptr;
+	}
 
 	auto result = MasterObjectArray;
 
@@ -79,8 +85,8 @@ static ObjectMaster* __cdecl AllocateObjectMaster_r(int index, ObjectFuncPtr Loa
 		if (last)
 		{
 			result->Previous = nullptr;
-			result->Next     = last;
-			last->Previous   = result;
+			result->Next = last;
+			last->Previous = result;
 
 			ObjectListThing[index] = result;
 		}
@@ -88,7 +94,7 @@ static ObjectMaster* __cdecl AllocateObjectMaster_r(int index, ObjectFuncPtr Loa
 		{
 			ObjectListThing[index] = result;
 
-			result->Next     = nullptr;
+			result->Next = nullptr;
 			result->Previous = nullptr;
 		}
 	}
@@ -127,8 +133,8 @@ static void __cdecl InitObjectQueue()
 	auto ptr = &MasterObjectArray_r.back();
 
 	MasterObjectArray_Base = ptr;
-	MasterObjectArray      = ptr;
-	CurrentObject          = nullptr;
+	MasterObjectArray = ptr;
+	CurrentObject = nullptr;
 }
 
 static void __cdecl InitMasterObjectArray_r()
@@ -142,10 +148,12 @@ static void __cdecl InitMasterObjectArray_r()
 	}
 
 	for (auto i = 0; i < ObjectListThing_Length; i++)
+	{
 		ObjectListThing[i] = nullptr;
+	}
 }
 
-static void __cdecl DeleteObjectMaster_r(ObjectMaster *_this)
+static void __cdecl DeleteObjectMaster_r(ObjectMaster* _this)
 {
 	if (!NaiZoGola(_this))
 	{
@@ -160,11 +168,11 @@ static void __cdecl DeleteObjectMaster_r(ObjectMaster *_this)
 	--object_count;
 
 	auto previous = _this->Previous;
-	auto next     = _this->Next;
+	auto next = _this->Next;
 
-	_this->MainSub    = nullptr;
+	_this->MainSub = nullptr;
 	_this->DisplaySub = nullptr;
-	_this->DeleteSub  = nullptr;
+	_this->DeleteSub = nullptr;
 
 	if (_this->Child != nullptr)
 	{
@@ -266,18 +274,18 @@ FREE_DATA:
 
 	if (master == nullptr)
 	{
-		_this->Next     = nullptr;
+		_this->Next = nullptr;
 		_this->Previous = nullptr;
-		_this->Child    = nullptr;
-		_this->Parent   = nullptr;
+		_this->Child = nullptr;
+		_this->Parent = nullptr;
 	}
 	else
 	{
 		master->Previous = _this;
-		_this->Previous  = nullptr;
-		_this->Child     = nullptr;
-		_this->Parent    = nullptr;
-		_this->Next      = master;
+		_this->Previous = nullptr;
+		_this->Child = nullptr;
+		_this->Parent = nullptr;
+		_this->Next = master;
 	}
 
 	// Clear the object queue if there are no objects checked out
@@ -288,11 +296,10 @@ FREE_DATA:
 	}
 }
 
-FunctionPointer(void, InitSpriteTable, (/*QueuedModelParticle*/void *arr, int count), 0x00456B80);
-
 static void __cdecl InitSpriteTable_r(void*, Uint32)
 {
-	InitSpriteTable(table, sprite_count);
+	InitSpriteTable((QueuedModelParticle*)table, sprite_count);
+
 #ifdef _DEBUG
 	Display_SPR_TASK = 1;
 #endif
@@ -317,19 +324,19 @@ extern "C"
 
 	__declspec(dllexport) void __cdecl OnFrame()
 	{
-		auto pad = ControllerPointers[0];
+		const auto pad = ControllerPointers[0];
 
 		if (last_level != CurrentLevel || last_act != CurrentAct
 			|| pad && pad->PressedButtons & Buttons_C)
 		{
 			last_level = CurrentLevel;
-			last_act   = CurrentAct;
+			last_act = CurrentAct;
 			Clip_Reset();
 		}
 
 		if (GameState == 15)
 		{
-			Uint32 p = points_i;
+			const auto p = points_i;
 			points[p] = object_count;
 
 			if (++points_i >= points_length)
@@ -337,7 +344,9 @@ extern "C"
 				float result = 0.0f;
 
 				for (Uint32 i = 0; i < p; i++)
+				{
 					result += points[i];
+				}
 
 				object_average = (Uint32)ceil(result / (float)points_length);
 			}
@@ -345,9 +354,9 @@ extern "C"
 
 		points_i %= points_length;
 
-#ifdef _DEBUG
+	#ifdef _DEBUG
 		DisplayDebugStringFormatted(NJM_LOCATION(1, 4), "COUNT: REAL/AVG/MAX: %03u / %03u / %03u", object_count, object_average, MasterObjectArray_r.size());
-#endif
+	#endif
 		DisplayDebugStringFormatted(NJM_LOCATION(1, 5), "CLIP: %f", clip_current);
 		Textures_OnFrame();
 	}
