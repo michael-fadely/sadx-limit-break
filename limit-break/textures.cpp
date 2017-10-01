@@ -126,6 +126,6 @@ void Textures_Init()
 void Textures_OnFrame()
 {
 #ifdef _DEBUG
-	DisplayDebugStringFormatted(NJM_LOCATION(1, 2), "TEXTURES: %u", GlobalTextures.size());
+	DisplayDebugStringFormatted(NJM_LOCATION(1, 2), "TEXTURES: %u", global_textures.size());
 #endif
 }
