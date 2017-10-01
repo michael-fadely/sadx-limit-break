@@ -33,6 +33,9 @@
     <ClInclude Include="..\sadx-mod-loader\libmodutils\Trampoline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="set.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -51,6 +54,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\sadx-mod-loader\libmodutils\Trampoline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="set.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

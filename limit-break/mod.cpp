@@ -320,6 +320,7 @@ extern "C"
 		Collision_Init();
 		Clip_Init();
 		Textures_Init();
+		Set_Init();
 	}
 
 	__declspec(dllexport) void __cdecl OnFrame()
