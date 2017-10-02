@@ -6,22 +6,39 @@
 static std::vector<SETObjData> set_table {};
 static std::vector<MissionSETData> mission_set_table {};
 
-// TODO: dynamic SetData
+#pragma pack(push, 1)
+struct ObjectListHead
+{
+	int Count;
+	int List;
+};
+#pragma pack(pop)
+
+// TODO: dynamic SetFiles
 //DataArray(SETEntry*, SetFiles, 0x03ABDF40, 6);
 DataArray(short, word_3C52468, 0x3C52468, 0);
+DataArray(ObjectListHead*, ObjLists, 0x00974AF8, 344);
 DataPointer(Uint8*, MissionFlagsPtr, 0x03C70140);
 DataPointer(int16_t, SETTable_Count, 0x03C4E454);
+DataPointer(int16_t, MissionSetCount, 0x03C70158);
 DataPointer(SETEntry*, CurrentSetFile, 0x03C4E45C);
 DataPointer(SETEntry*, CurrentSetFileBase, 0x03C4E458);
+DataPointer(SETEntry*, MissionSetObjects, 0x03C72968);
+DataPointer(PRM_Entry*, MissionParameters, 0x03C72960);
 DataPointer(int, dword_91BA00, 0x0091BA00);
 DataPointer(short, CurrentStageAndAct, 0x03C4E450);
+DataPointer(LPVOID, MissionSetFile, 0x03C70150);
+DataPointer(LPVOID, MissionParameterFile, 0x03C70154);
+DataPointer(ObjectListHead, Objs_Mission, 0x0170F854);
 
 FunctionPointer(Sint32, IsSwitchPressed, (int index), 0x004CB4F0);
+FunctionPointer(int, LoadFileWithMalloc_, (const char *name, LPVOID *data), 0x422310);
+FunctionPointer(void, MissionSET_LoadCam, (int arg_0, int arg_4), 0x005931B0);
 
 static Trampoline* SetObjList_t = nullptr;
 static Trampoline* ReleaseSetFile_t = nullptr;
 
-static ObjectMaster *__cdecl GetSetObjInstance_r(ObjectMaster *caller, __int16 index)
+static ObjectMaster *__cdecl GetSetObjInstance_r(ObjectMaster*, short index)
 {
 	ObjectMaster *result = nullptr;
 
@@ -94,7 +111,7 @@ static void __cdecl CountSetItemsMaybe_r()
 			set_table.resize(max);
 		}
 
-		__int16 max_ = max;
+		short max_ = max;
 		SETObjData *obj_data = &set_table[SETTable_Count];
 		if (SETTable_Count < max)
 		{
@@ -131,7 +148,7 @@ static void __cdecl CountSetItems_r()
 	ObjectMaster *v4; // eax@4
 
 	signed int v0 = 0;
-	__int16 v6 = 0;
+	short v6 = 0;
 	if (SETTable_Count <= 0)
 	{
 		SETTable_Count = 0;
@@ -178,10 +195,8 @@ static void __cdecl CountSetItems_r()
 
 static char __cdecl sub_5922A0(ObjectMaster *a1)
 {
-	__int16 v3; // ax@6
-	__int16 v5; // ax@11
-
 	MissionSETData *v1 = a1->SETData.MissionSETData;
+
 	if (IsMissionSETObj_r(v1))
 	{
 		PRM_Entry *v2 = v1->PRMEntry;
@@ -189,16 +204,19 @@ static char __cdecl sub_5922A0(ObjectMaster *a1)
 		{
 			return 0;
 		}
+
 		if (v2->Display == 3)
 		{
+			short v3;
 			__HIBYTE(v3) = v2->Appearance;
 			__LOBYTE(v3) = v2->field_9;
+
 			if (v3 != -1)
 			{
 				SETObjData *v4 = SHIBYTE(v3) >= 0 ? &set_table[v3 & 0x7FFF] : &mission_set_table[v3 & 0x7FFF];
 				if (v4)
 				{
-					v5 = v4->Flags;
+					short v5 = v4->Flags;
 					if (SHIBYTE(v5) >= 0 || !(v5 & 0x20))
 					{
 						return 0;
@@ -206,6 +224,7 @@ static char __cdecl sub_5922A0(ObjectMaster *a1)
 				}
 			}
 		}
+
 		if (v2->field_3)
 		{
 			SETObjData *v6 = a1->SETData.SETData;
@@ -217,29 +236,25 @@ static char __cdecl sub_5922A0(ObjectMaster *a1)
 			}
 		}
 	}
+
 	return 1;
 }
 
 static void __cdecl sub_46BE00()
 {
-	signed int v0 = 0;
-	if (SETTable_Count > 0)
+	for (auto& it : set_table)
 	{
-		char *v1 = (char *)&set_table[0].Flags;
-		do
+		if (!(it.Flags & 0x4000))
 		{
-			if (!(*(WORD *)v1 & 0x4000))
-			{
-				const __int16 v2 = *(WORD *)v1 & 0x7FE9;
-				*(WORD *)v1 = v2;
-				if (v2 & 1)
-				{
-					*(ObjectFuncPtr *)(*(_DWORD *)(v1 + 2) + 16) = DeleteObjectMaster;
-				}
-			}
-			++v0;
-			v1 += 16;
-		} while (v0 < SETTable_Count);
+			continue;
+		}
+
+		it.Flags &= 0x7FE9;
+
+		if (it.Flags & 1 && it.ObjInstance)
+		{
+			it.ObjInstance->MainSub = DeleteObjectMaster;
+		}
 	}
 }
 
@@ -250,31 +265,18 @@ static void __cdecl sub_46BF20()
 		return;
 	}
 
-	/*int v0 = *(_DWORD *)&CurrentSetFileBase->ObjectType + SETTable_Count;
-		if ((unsigned int)v0 > 1023)
-		{
-			v0 = 1023;
-		}*/
-
-	int v0 = static_cast<int>(set_table.size());
-	if (v0 > 0)
+	for (auto& it : set_table)
 	{
-		char *v1 = (char *)&set_table[0].Flags;
-		do
+		if (it.Flags & 0x10)
 		{
-			if (!(*v1 & 0x10))
-			{
-				*(WORD *)v1 = 0x8000u;
-				*(v1 - 1) = 0;
-			}
-			v1 += 16;
-			--v0;
-		} while (v0);
+			it.Flags = 0x8000u;
+			it.f1 = 0;
+		}
 	}
 }
 
 // ReSharper disable once CppDeclaratorNeverUsed
-static void* __cdecl get_data()
+static void* __cdecl get_set_data()
 {
 	return set_table.data();
 }
@@ -283,17 +285,18 @@ static void* __cdecl get_data()
 static const auto loc_46BA2E = (void*)0x46BA2E;
 // ReSharper disable once CppDeclaratorNeverUsed
 static const auto loc_46B821 = (void*)0x46B821;
-static void __declspec(naked) reference_46B816()
+static void __declspec(naked) set_reference_46B816()
 {
 	__asm
 	{
 		push eax
-		call get_data
+		call get_set_data
 		mov esi, eax
 		pop eax
 
 		js _loc_46BA2E
 		jmp loc_46B821
+
 	_loc_46BA2E:
 		jmp loc_46BA2E
 	}
@@ -303,17 +306,18 @@ static void __declspec(naked) reference_46B816()
 static const auto loc_46BCD2 = (void*)0x46BCD2;
 // ReSharper disable once CppDeclaratorNeverUsed
 static const auto loc_46BAD2 = (void*)0x46BAD2;
-static void __declspec(naked) reference_46BAC7()
+static void __declspec(naked) set_reference_46BAC7()
 {
 	__asm
 	{
 		push eax
-		call get_data
+		call get_set_data
 		mov esi, eax
 		pop eax
 
 		js _loc_46BCD2
 		jmp loc_46BAD2
+
 	_loc_46BCD2:
 		jmp loc_46BCD2
 	}
@@ -326,6 +330,156 @@ static void __cdecl ReleaseSetFile_r()
 	set_table.clear();
 }
 
+// ReSharper disable once CppDeclaratorNeverUsed
+static void* __cdecl get_mission_data()
+{
+	return mission_set_table.data();
+}
+
+// ReSharper disable once CppDeclaratorNeverUsed
+static const auto loc_591D68 = (void*)0x591D68;
+static void __declspec(naked) mission_reference_591D5D()
+{
+	__asm
+	{
+		push eax
+		xor eax, eax
+
+		mov eax, dword ptr [MissionSetCount]
+		mov ax, word ptr [eax]
+		cmp ax, 0
+
+		jle zero
+
+		// non-zero
+		call get_mission_data
+
+		mov esi, eax
+		mov edi, [eax+10h]
+
+		jmp end
+
+	zero:
+		mov esi, 0
+		mov edi, 0
+
+	end:
+		pop eax
+		jmp loc_591D68
+	}
+}
+
+static void __cdecl MissionSET_Clear()
+{
+	for (auto& it : mission_set_table)
+	{
+		if (it.ObjInstance)
+		{
+			DeleteObjectMaster(it.ObjInstance);
+		}
+	}
+
+	mission_set_table.clear();
+}
+
+static void __cdecl MissionSET_Load()
+{
+	short v1; // ax@1
+	short v2; // ax@1
+	int v3; // eax@2
+	char dest[32]; // [sp+Ch] [bp-24h]@4
+
+	__LOBYTE(v1) = 0;
+	__HIBYTE(v1) = CurrentLevel;
+	MissionSetObjects = nullptr;
+	MissionParameters = nullptr;
+	v2 = CurrentAct | v1;
+	char v0 = __HIBYTE(v2);
+	const unsigned __int8 v10 = v2;
+
+	if (__HIBYTE(v2) < (unsigned __int8)LevelIDs_SSGarden)
+	{
+	LABEL_4:
+		const int v5 = (unsigned __int8)v0;
+		*(ObjectListHead**)0x3C72970 = ObjLists[v10 + 8 * (unsigned __int8)v0];
+		*(ObjectListHead**)0x3C72974 = &Objs_Mission;
+		MissionSET_LoadCam((unsigned __int8)v0, v10);
+		char *v4 = (char*)GetCharIDString();
+		sprintf(dest, "SetMi%02d%02d%s.bin", v5, v10, v4);
+		if (LoadFileWithMalloc_(dest, &MissionSetFile)
+			|| (sprintf(dest, "PrmMi%02d%02d%s.bin", v5, v10, v4), LoadFileWithMalloc_(dest, &MissionParameterFile)))
+		{
+			MissionSetCount = 0;
+			mission_set_table.clear();
+		}
+		else
+		{
+			MissionSetCount = *(WORD *)MissionSetFile;
+			PRM_Entry *params = (PRM_Entry *)((char *)MissionParameterFile + 32);
+			SETEntry *entry = (SETEntry *)((char *)MissionSetFile + 32);
+			MissionSetObjects = (SETEntry *)((char *)MissionSetFile + 32);
+			MissionParameters = (PRM_Entry *)((char *)MissionParameterFile + 32);
+
+			if (MissionSetCount > 0)
+			{
+				mission_set_table.resize(MissionSetCount);
+
+				for (auto& it : mission_set_table)
+				{
+					it.Flags |= 0x8000u;
+					it.SETEntry = entry++;
+					it.PRMEntry = params++;
+					it.LoadCount = 0;
+					it.f1 = 0;
+				}
+			}
+			else
+			{
+				mission_set_table.clear();
+			}
+		}
+	}
+	else
+	{
+		__LOBYTE(v3) = GetNextChaoStage();
+		switch (v3 + 1)
+		{
+			case 5:
+				v0 = 39;
+				goto LABEL_4;
+			case 0:
+				goto LABEL_4;
+			case 6:
+				v0 = 40;
+				goto LABEL_4;
+			case 7:
+				v0 = 41;
+				goto LABEL_4;
+			default:
+				MissionSetCount = 0;
+				break;
+		}
+	}
+}
+
+static void __cdecl DeactivateMission_r(char mission, char deleteobjects)
+{
+	for (auto& it : mission_set_table)
+	{
+		if (it.PRMEntry->Mission != mission)
+		{
+			continue;
+		}
+
+		if (deleteobjects && it.ObjInstance)
+		{
+			it.ObjInstance->MainSub = DeleteObjectMaster;
+		}
+
+		it.Flags = it.Flags & 0xFFDB | 0x8000;
+	}
+}
+
 void Set_Init()
 {
 	WriteJump(GetSetObjInstance, GetSetObjInstance_r);
@@ -334,9 +488,15 @@ void Set_Init()
 	WriteJump((void*)0x5922A0, sub_5922A0);
 	WriteJump((void*)0x46BE00, sub_46BE00);
 	WriteJump((void*)0x46BF20, sub_46BF20);
+	WriteJump((void*)0x591A20, MissionSET_Clear);
+	WriteJump(DeactivateMission, DeactivateMission_r);
 
-	WriteJump((void*)0x0046B816, reference_46B816);
-	WriteJump((void*)0x0046BAC7, reference_46BAC7);
+	WriteJump((void*)0x00591A70, MissionSET_Load);
+
+	WriteJump((void*)0x0046B816, set_reference_46B816);
+	WriteJump((void*)0x0046BAC7, set_reference_46BAC7);
+
+	WriteJump((void*)0x00591D5D, mission_reference_591D5D);
 
 	SetObjList_t = new Trampoline(0x0046C1D0, 0x0046C1D8, SetObjList_r);
 	ReleaseSetFile_t = new Trampoline(0x00422440, 0x00422447, ReleaseSetFile_r);
