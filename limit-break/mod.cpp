@@ -38,8 +38,10 @@ extern "C"
 	{
 		const auto pad = ControllerPointers[0];
 
+		// TODO: fix; this pulls the draw distance from the *last* stage, if any
 		if (last_level != CurrentLevel || last_act != CurrentAct
-			|| pad && pad->PressedButtons & Buttons_C)
+			|| pad && pad->PressedButtons & Buttons_C
+			|| abs(clip_current) < FLT_EPSILON)
 		{
 			last_level = CurrentLevel;
 			last_act = CurrentAct;
