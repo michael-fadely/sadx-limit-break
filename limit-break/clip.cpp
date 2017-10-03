@@ -13,7 +13,7 @@ float clip_limit   = 0.0f; // this is written to externally
 float clip_min     = FLT_MAX;
 float clip_max     = 0.0f;
 
-static void __stdcall set_clip(float r, ClipType type)
+static void set_clip(float r, ClipType type)
 {
 	if (r < clip_min && r > clip_default)
 	{
@@ -74,32 +74,35 @@ static int __cdecl ClipSetObject_r(ObjectMaster* a1)
 	return ClipObject(a1, clip_default);
 }
 
-static int __cdecl ObjectInRange_r(NJS_VECTOR* v, float r, float z, float y, float x /*float x, float y, float z, float r*/)
+// ReSharper disable once CppDeclaratorNeverUsed
+static int __cdecl ObjectInRange_r(NJS_VECTOR* from, float x, float y, float z, float range)
 {
-	set_clip(r, ClipType::Draw);
-	return ObjectInRange(v, x, y, z, (ControllerPointers[0]->HeldButtons & Buttons_Z) ? r : max(r, clip_current));
+	set_clip(range, ClipType::Draw);
+	return ObjectInRange(from, x, y, z, (ControllerPointers[0]->HeldButtons & Buttons_Z) ? range : max(range, clip_current));
 }
 
 static void __declspec(naked) ObjectInRange_asm()
 {
 	__asm
 	{
-		push    [esp + 04h]     // range
-		push    [esp + 0Ch]     // z
-		push    [esp + 14h]     // y
-		push    [esp + 1Ch]     // x
-		push    ecx             // from
-		call    ObjectInRange_r //
-		pop     ecx             // from
-		add     esp, 4          // x
-		add     esp, 4          // y
-		add     esp, 4          // z
-		add     esp, 4          // range
+		push [esp + 10h] // range
+		push [esp + 10h] // z
+		push [esp + 10h] // y
+		push [esp + 10h] // x
+		push ecx // from
+
+		call ObjectInRange_r
+
+		pop ecx // from
+		add esp, 4 // x
+		add esp, 4 // y
+		add esp, 4 // z
+		add esp, 4 // range
 		retn
 	}
 }
 
-void Clip_Init()
+void clip_init()
 {
 	WriteJump(ClipSetObject, ClipSetObject_r);
 	WriteJump(ClipSetObject_Min, ClipSetObject_r);
@@ -109,7 +112,7 @@ void Clip_Init()
 	WriteData((float**)0x0046B72D, &clip_current);
 }
 
-void Clip_Reset(float limit)
+void clip_reset(float limit)
 {
 	// LevelDrawDistance
 	const auto f = -*(float*)0x03ABDC74 * 0.5f;
@@ -120,7 +123,7 @@ void Clip_Reset(float limit)
 	clip_max = 0.0f;
 }
 
-bool Clip_Increase(float inc)
+bool clip_increase(float inc)
 {
 	if (inc <= 0.0f || clip_limit >= clip_max)
 	{
@@ -131,7 +134,7 @@ bool Clip_Increase(float inc)
 	return true;
 }
 
-bool Clip_Decrease(float dec)
+bool clip_decrease(float dec)
 {
 	if (dec <= 0.0f)
 	{

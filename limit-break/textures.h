@@ -1,4 +1,4 @@
 #pragma once
 
-void Textures_Init();
-void Textures_OnFrame();
+void textures_init();
+void textures_OnFrame();

@@ -328,12 +328,12 @@ ObjectMaster* sub_4C49F0(int length_, void* unknown, CollisionInfo** array, floa
 	return result;
 }
 
-//BOOL __usercall sub_628A50@<eax>(CollisionInfo *a1@<eax>, EntityData1 *a2@<edi>)
+//Bool __usercall sub_628A50@<eax>(CollisionInfo *a1@<eax>, EntityData1 *a2@<edi>)
 // ReSharper disable once CppDeclaratorNeverUsed
 static const void* sub_628A50_ptr = (const void*)0x628A50;
-BOOL sub_628A50(CollisionInfo *a1, EntityData1 *a2)
+Bool sub_628A50(CollisionInfo *a1, EntityData1 *a2)
 {
-	auto result = FALSE;
+	Bool result = 0;
 
 	__asm
 	{
@@ -540,7 +540,7 @@ ObjectMaster *__cdecl sub_628B20(EntityData1 *a1)
 	return result;
 }
 
-void Collision_Init()
+void collision_init()
 {
 	WriteJump((void*)0x0041B970, ClearLists);
 	WriteCall((void*)0x004207A7, ClearLists_hook);

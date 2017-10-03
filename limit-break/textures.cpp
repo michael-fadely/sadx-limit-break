@@ -102,7 +102,7 @@ static Sint32 __fastcall njSetTextureNumG_r(Uint32 gbix)
 	return -1;
 }
 
-void Textures_Init()
+void textures_init()
 {
 	WriteJump((void*)0x0077FA10, sub_77FA10);
 	WriteJump(GetCachedTexture, GetCachedTexture_r);
@@ -110,7 +110,7 @@ void Textures_Init()
 	WriteJump(njSetTextureNumG, njSetTextureNumG_r);
 }
 
-void Textures_OnFrame()
+void textures_OnFrame()
 {
 #ifdef _DEBUG
 	DisplayDebugStringFormatted(NJM_LOCATION(1, 2), "TEXTURES: %u", global_textures.size());

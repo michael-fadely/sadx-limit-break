@@ -1,3 +1,3 @@
 #pragma once
 
-void Set_Init();
+void set_init();

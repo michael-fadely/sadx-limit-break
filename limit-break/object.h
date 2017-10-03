@@ -1,4 +1,4 @@
 #pragma once
 
-void Object_Init();
-void Object_OnFrame();
+void object_init();
+void object_OnFrame();

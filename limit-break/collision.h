@@ -1,3 +1,3 @@
 #pragma once
 
-void Collision_Init();
+void collision_init();

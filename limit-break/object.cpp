@@ -265,7 +265,7 @@ FREE_DATA:
 	}
 }
 
-void Object_Init()
+void object_init()
 {
 	WriteJump(InitMasterObjectArray, InitMasterObjectArray_r);
 	WriteJump((void*)AllocateObjectMasterPtr, AllocateObjectMaster_asm);
@@ -273,7 +273,7 @@ void Object_Init()
 	WriteCall((void*)0x0040B011, PrintDebug);
 }
 
-void Object_OnFrame()
+void object_OnFrame()
 {
 	if (GameState == 15)
 	{

@@ -27,11 +27,11 @@ extern "C"
 	{
 		WriteCall((void*)0x00415A60, InitSpriteTable_r);
 
-		Object_Init();
-		Collision_Init();
-		Clip_Init();
-		Textures_Init();
-		Set_Init();
+		object_init();
+		collision_init();
+		clip_init();
+		textures_init();
+		set_init();
 	}
 
 	__declspec(dllexport) void __cdecl OnFrame()
@@ -43,12 +43,12 @@ extern "C"
 		{
 			last_level = CurrentLevel;
 			last_act = CurrentAct;
-			Clip_Reset();
+			clip_reset();
 		}
 
 		DisplayDebugStringFormatted(NJM_LOCATION(1, 5), "CLIP: %f", clip_current);
 
-		Object_OnFrame();
-		Textures_OnFrame();
+		object_OnFrame();
+		textures_OnFrame();
 	}
 }

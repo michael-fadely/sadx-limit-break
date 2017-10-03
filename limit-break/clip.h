@@ -12,8 +12,8 @@ extern float clip_max;
 // Default SADX object clip distance
 extern const float clip_default;
 
-void Clip_Init();
+void clip_init();
 // Reset current clip distance and limit to defaults
-void Clip_Reset(float limit = 0.0f);
-bool Clip_Increase(float inc);
-bool Clip_Decrease(float dec);
+void clip_reset(float limit = 0.0f);
+bool clip_increase(float inc);
+bool clip_decrease(float dec);

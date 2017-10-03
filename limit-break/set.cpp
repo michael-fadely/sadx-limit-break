@@ -480,7 +480,7 @@ static void __cdecl DeactivateMission_r(char mission, char deleteobjects)
 	}
 }
 
-void Set_Init()
+void set_init()
 {
 	WriteJump(GetSetObjInstance, GetSetObjInstance_r);
 	WriteJump(IsMissionSETObj, IsMissionSETObj_r);
