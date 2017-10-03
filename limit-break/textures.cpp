@@ -30,34 +30,34 @@ inline void reset(NJS_TEXMEMLIST* memlist)
 	memlist->texinfo.texsurface.pPhysical     = nullptr;
 }
 
-static NJS_TEXMEMLIST* __cdecl _GetCachedTexture(Uint32 gbix)
+static NJS_TEXMEMLIST* __cdecl GetCachedTexture_r(Uint32 gbix)
 {
-	if (global_textures.size())
+	if (!global_textures.empty())
 	{
+		// First, check if an entry with this global index already exists and return it.
 		for (auto& i : global_textures)
 		{
 			if (i.globalIndex == gbix)
 			{
-				//PrintDebug("/!\\\tCACHE SLOT FOR %u\n", gbix);
 				return &i;
 			}
 		}
 
+		// If none, find the first empty slot and return that.
 		for (auto& i : global_textures)
 		{
 			if (!i.count)
 			{
-				//PrintDebug("/!\\\tFREE SLOT FOR %u\n", gbix);
 				return &i;
 			}
 		}
 	}
 
+	// If all else fails, add a new slot to the texture deque
 	NJS_TEXMEMLIST memlist;
 	reset(&memlist);
 	global_textures.push_back(memlist);
 
-	//PrintDebug("/!\\\tNEW SLOT FOR %u, %u COUNT\n", gbix, GlobalTextures.size());
 	return &global_textures.back();
 }
 
@@ -79,7 +79,7 @@ static Sint32 __cdecl sub_77FA10(Uint32 gbix, void* texture)
 	return result;
 }
 
-static void __cdecl _njReleaseTextureAll()
+static void __cdecl njReleaseTextureAll_r()
 {
 	for (auto& i : global_textures)
 	{
@@ -89,7 +89,7 @@ static void __cdecl _njReleaseTextureAll()
 	global_textures.clear();
 }
 
-Sint32 __cdecl _njSetTextureNumG(Uint32 gbix, void* asdf)
+static Sint32 __fastcall njSetTextureNumG_r(Uint32 gbix)
 {
 	for (auto& i : global_textures)
 	{
@@ -104,23 +104,12 @@ Sint32 __cdecl _njSetTextureNumG(Uint32 gbix, void* asdf)
 	return -1;
 }
 
-void __declspec(naked) _njSetTextureNumG_asm()
-{
-	__asm
-	{
-		push ecx
-		call _njSetTextureNumG
-		pop ecx
-		retn
-	}
-}
-
 void Textures_Init()
 {
 	WriteJump((void*)0x0077FA10, sub_77FA10);
-	WriteJump(GetCachedTexture, _GetCachedTexture);
-	WriteJump(njReleaseTextureAll, _njReleaseTextureAll);
-	WriteJump(njSetTextureNumG, _njSetTextureNumG_asm);
+	WriteJump(GetCachedTexture, GetCachedTexture_r);
+	WriteJump(njReleaseTextureAll, njReleaseTextureAll_r);
+	WriteJump(njSetTextureNumG, njSetTextureNumG_r);
 }
 
 void Textures_OnFrame()
