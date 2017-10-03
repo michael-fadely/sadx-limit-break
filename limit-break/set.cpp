@@ -390,20 +390,20 @@ static void __cdecl MissionSET_Load()
 	char dest[32]; // [sp+Ch] [bp-24h]@4
 
 	__LOBYTE(v1) = 0;
-	__HIBYTE(v1) = CurrentLevel;
+	__HIBYTE(v1) = (int8_t)CurrentLevel;
 	MissionSetObjects = nullptr;
 	MissionParameters = nullptr;
 	v2 = CurrentAct | v1;
 	char v0 = __HIBYTE(v2);
-	const unsigned __int8 v10 = v2;
+	const uint8_t v10 = (uint8_t)v2;
 
-	if (__HIBYTE(v2) < (unsigned __int8)LevelIDs_SSGarden)
+	if (__HIBYTE(v2) < (uint8_t)LevelIDs_SSGarden)
 	{
 	LABEL_4:
-		const int v5 = (unsigned __int8)v0;
-		*(ObjectListHead**)0x3C72970 = ObjLists[v10 + 8 * (unsigned __int8)v0];
+		const int v5 = (uint8_t)v0;
+		*(ObjectListHead**)0x3C72970 = ObjLists[v10 + 8 * (uint8_t)v0];
 		*(ObjectListHead**)0x3C72974 = &Objs_Mission;
-		MissionSET_LoadCam((unsigned __int8)v0, v10);
+		MissionSET_LoadCam((uint8_t)v0, v10);
 		char *v4 = (char*)GetCharIDString();
 		sprintf(dest, "SetMi%02d%02d%s.bin", v5, v10, v4);
 		if (LoadFileWithMalloc_(dest, &MissionSetFile)

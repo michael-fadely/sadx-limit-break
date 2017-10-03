@@ -1,6 +1,4 @@
 #include "stdafx.h"
-#include <SADXModLoader.h>
-#include <deque>
 #include "textures.h"
 
 FastcallFunctionPointer(void, Direct3D_PVRToD3D, (NJS_TEXMEMLIST*, void*), 0x0078CBD0);

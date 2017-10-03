@@ -88,6 +88,7 @@
     <ClInclude Include="clip.h" />
     <ClInclude Include="collision.h" />
     <ClInclude Include="misc.h" />
+    <ClInclude Include="object.h" />
     <ClInclude Include="set.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="textures.h" />
@@ -97,6 +98,7 @@
     <ClCompile Include="clip.cpp" />
     <ClCompile Include="collision.cpp" />
     <ClCompile Include="mod.cpp" />
+    <ClCompile Include="object.cpp" />
     <ClCompile Include="set.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include <SADXModLoader.h>
 #include "clip.h"
 
 enum class ClipType

@@ -1,7 +1,6 @@
 #include "stdafx.h"
-#include "misc.h"
-#include <SADXModLoader.h>
 #include "collision.h"
+#include "misc.h"
 
 #pragma pack(push, 1)
 struct _CollisionInfo
