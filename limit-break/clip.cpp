@@ -94,10 +94,7 @@ static void __declspec(naked) ObjectInRange_asm()
 		call ObjectInRange_r
 
 		pop ecx // from
-		add esp, 4 // x
-		add esp, 4 // y
-		add esp, 4 // z
-		add esp, 4 // range
+		add esp, 10h
 		retn
 	}
 }
