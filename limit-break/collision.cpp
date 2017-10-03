@@ -22,8 +22,8 @@ namespace CollisionList
 }
 
 static std::vector<EntityData1*> entities[CollisionList::COUNT] = {};
+// TODO: actually update this. It's likely used for Gamma's targeting system. (see: CollisionList_2_Info, CollisionList_3_Info)
 static std::vector<CollisionInfo*> big_dummies[CollisionList::COUNT] = {};
-// TODO: actually update this. It's likely used for Gamma's targeting system.
 
 static void __cdecl CheckSelfCollision(Uint32 num)
 {
