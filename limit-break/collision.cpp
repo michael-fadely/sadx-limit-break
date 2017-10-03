@@ -2,24 +2,7 @@
 #include "collision.h"
 #include "misc.h"
 
-#pragma pack(push, 1)
-struct _CollisionInfo
-{
-	__int16 List;
-	__int16 field_2;
-	__int16 Flags;
-	__int16 Count;
-	float f8;
-	CollisionData* CollisionArray;
-	Uint8 field_10[140];
-	ObjectMaster* Object;
-	__int16 field_A0;
-	__int16 field_A2;
-	_CollisionInfo* CollidingObject;
-};
-#pragma pack(pop)
-
-// TODO: yes
+// TODO:
 namespace CollisionList
 {
 	enum _enum
@@ -39,7 +22,7 @@ namespace CollisionList
 }
 
 static std::vector<EntityData1*> entities[CollisionList::COUNT] = {};
-static std::vector<_CollisionInfo*> big_dummies[CollisionList::COUNT] = {};
+static std::vector<CollisionInfo*> big_dummies[CollisionList::COUNT] = {};
 // TODO: actually update this. It's likely used for Gamma's targeting system.
 
 static void __cdecl CheckSelfCollision(Uint32 num)
@@ -60,19 +43,19 @@ static void __cdecl CheckSelfCollision(Uint32 num)
 
 static void __cdecl Collision_Statistics()
 {
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	auto rows = (Uint32)(480.0f * VerticalStretch / DebugFontSize) - 1;
-	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 10),	"ENTITIES[0]: %3u [player]",		entities[0].size());
-	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 9),	"ENTITIES[1]: %3u",					entities[1].size());
-	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 8),	"ENTITIES[2]: %3u [targetable]",	entities[2].size());
-	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 7),	"ENTITIES[3]: %3u [enemy/hazard]",	entities[3].size());
-	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 6),	"ENTITIES[4]: %3u",					entities[4].size());
-	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 5),	"ENTITIES[5]: %3u",					entities[5].size());
-	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 4),	"ENTITIES[6]: %3u [minimal]",		entities[6].size());
-	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 3),	"ENTITIES[7]: %3u [rings]",			entities[7].size());
-	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 2),	"ENTITIES[8]: %3u",					entities[8].size());
-	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 1),	"ENTITIES[9]: %3u [chao]",			entities[9].size());
-	#endif
+	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 10), "ENTITIES[0]: %3u [player]",       entities[0].size());
+	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 9),  "ENTITIES[1]: %3u",                entities[1].size());
+	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 8),  "ENTITIES[2]: %3u [targetable]",   entities[2].size());
+	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 7),  "ENTITIES[3]: %3u [enemy/hazard]", entities[3].size());
+	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 6),  "ENTITIES[4]: %3u",                entities[4].size());
+	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 5),  "ENTITIES[5]: %3u",                entities[5].size());
+	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 4),  "ENTITIES[6]: %3u [minimal]",      entities[6].size());
+	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 3),  "ENTITIES[7]: %3u [rings]",        entities[7].size());
+	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 2),  "ENTITIES[8]: %3u",                entities[8].size());
+	DisplayDebugStringFormatted(NJM_LOCATION(1, rows - 1),  "ENTITIES[9]: %3u [chao]",         entities[9].size());
+#endif
 }
 
 static void __cdecl ClearLists()
@@ -92,9 +75,9 @@ static void __cdecl ClearLists_hook()
 	ClearLists();
 }
 
-static void __cdecl AddToCollisionList_(EntityData1* entity)
+static void __cdecl AddToCollisionList_r(EntityData1* entity)
 {
-	const auto collision = reinterpret_cast<_CollisionInfo*>(entity->CollisionInfo);
+	const auto collision = entity->CollisionInfo;
 
 	if (collision && collision->Object->MainSub != DeleteObjectMaster)
 	{
@@ -130,7 +113,7 @@ static void __cdecl AddToCollisionList_(EntityData1* entity)
 	}
 }
 
-static void __cdecl RunPlayerCollision_()
+static void __cdecl RunPlayerCollision_r()
 {
 	if (IsChaoStage)
 	{
@@ -145,82 +128,150 @@ static void __cdecl RunPlayerCollision_()
 	for (auto& i : entities[0])
 	{
 		for (auto& x : entities[2])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[3])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[4])
+		{
 			CheckCollision__(i, x);
+		}
+
 		for (auto& x : entities[5])
+		{
 			CheckCollision__(i, x);
+		}
+
 		for (auto& x : entities[6])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[7])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[8])
+		{
 			CheckCollision_(i, x);
+		}
+
 		for (auto& x : entities[9])
+		{
 			CheckCollision(i, x);
+		}
 	}
 }
 
-static void __cdecl RunCollision_1_()
+static void __cdecl RunCollision_1_r()
 {
 	for (auto& i : entities[1])
 	{
 		for (auto& x : entities[0])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[2])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[3])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[4])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[5])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[6])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[7])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[9])
+		{
 			CheckCollision(i, x);
+		}
 	}
 }
 
-static void __cdecl RunCollision_9_()
+static void __cdecl RunCollision_9_r()
 {
 	CheckSelfCollision(9);
 
 	for (auto& i : entities[9])
 	{
 		for (auto& x : entities[2])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[3])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[4])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[5])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[6])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[7])
+		{
 			CheckCollision(i, x);
+		}
 	}
 }
 
-static void __cdecl RunCollision_3_()
+static void __cdecl RunCollision_3_r()
 {
 	CheckSelfCollision(3);
 
 	for (auto& i : entities[3])
 	{
 		for (auto& x : entities[4])
+		{
 			CheckCollision(i, x);
+		}
+
 		for (auto& x : entities[5])
+		{
 			CheckCollision(i, x);
+		}
 	}
 }
 
-static void __cdecl RunCollision_4_()
+static void __cdecl RunCollision_4_r()
 {
 	for (auto& i : entities[4])
 	{
@@ -231,7 +282,7 @@ static void __cdecl RunCollision_4_()
 	}
 }
 
-static void __cdecl RunCollision_5_()
+static void __cdecl RunCollision_5_r()
 {
 	CheckSelfCollision(5);
 }
@@ -240,11 +291,11 @@ void Collision_Init()
 {
 	WriteJump((void*)0x0041B970, ClearLists);
 	WriteCall((void*)0x004207A7, ClearLists_hook);
-	WriteJump((void*)0x0041C280, AddToCollisionList_);
-	WriteJump((void*)0x00420010, RunPlayerCollision_);
-	WriteJump((void*)0x00420210, RunCollision_1_);
-	WriteJump((void*)0x004203C0, RunCollision_9_);
-	WriteJump((void*)0x00420560, RunCollision_3_);
-	WriteJump((void*)0x00420640, RunCollision_4_);
-	WriteJump((void*)0x004206A0, RunCollision_5_);
+	WriteJump((void*)0x0041C280, AddToCollisionList_r);
+	WriteJump((void*)0x00420010, RunPlayerCollision_r);
+	WriteJump((void*)0x00420210, RunCollision_1_r);
+	WriteJump((void*)0x004203C0, RunCollision_9_r);
+	WriteJump((void*)0x00420560, RunCollision_3_r);
+	WriteJump((void*)0x00420640, RunCollision_4_r);
+	WriteJump((void*)0x004206A0, RunCollision_5_r);
 }
