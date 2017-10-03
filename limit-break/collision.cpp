@@ -2,6 +2,13 @@
 #include "collision.h"
 #include "misc.h"
 
+// TODO: TornadoTargetSprite_TargetLock_Load (floating point comparison shenanigans!)
+//DataArray(CollisionInfo*, TornadoTargets, 0x03C82360, 6);
+//DataArray(ObjectMaster*, TornadoTarget_ObjectsMaybe, 0x03C82348, 6);
+
+DataArray(EntityData2*, EntityData2Ptrs, 0x03B36DD0, 8);
+FunctionPointer(int, sub_4C47B0, (ObjectMaster *a1), 0x4C47B0);
+
 // TODO:
 namespace CollisionList
 {
@@ -22,8 +29,7 @@ namespace CollisionList
 }
 
 static std::vector<EntityData1*> entities[CollisionList::COUNT] = {};
-// TODO: actually update this. It's likely used for Gamma's targeting system. (see: CollisionList_2_Info, CollisionList_3_Info)
-static std::vector<CollisionInfo*> big_dummies[CollisionList::COUNT] = {};
+static std::vector<CollisionInfo*> colliders[CollisionList::COUNT] = {};
 
 static void __cdecl CheckSelfCollision(Uint32 num)
 {
@@ -65,7 +71,7 @@ static void __cdecl ClearLists()
 	for (Uint32 i = 0; i < CollisionList::COUNT; i++)
 	{
 		entities[i].clear();
-		big_dummies[i].clear();
+		colliders[i].clear();
 	}
 }
 
@@ -105,9 +111,9 @@ static void __cdecl AddToCollisionList_r(EntityData1* entity)
 				entities[i].push_back(entity);
 			}
 
-			if (std::find(big_dummies[i].begin(), big_dummies[i].end(), collision) == big_dummies[i].end())
+			if (std::find(colliders[i].begin(), colliders[i].end(), collision) == colliders[i].end())
 			{
-				big_dummies[i].push_back(collision);
+				colliders[i].push_back(collision);
 			}
 		}
 	}
@@ -287,6 +293,253 @@ static void __cdecl RunCollision_5_r()
 	CheckSelfCollision(5);
 }
 
+
+//void __usercall sub_4C4850(int length@<eax>, CollisionInfo **array_ptr@<ecx>)
+// ReSharper disable once CppDeclaratorNeverUsed
+static const void* sub_4C4850_ptr = (const void*)0x4C4850;
+static void sub_4C4850(int length_, CollisionInfo** array_ptr)
+{
+	__asm
+	{
+		mov eax, length_
+		mov ecx, array_ptr
+		call sub_4C4850_ptr
+	}
+}
+
+//ObjectMaster *__usercall sub_4C49F0@<eax>(int length@<eax>, void *unknown@<ecx>, CollisionInfo **array, float *out)
+// ReSharper disable once CppDeclaratorNeverUsed
+static const void* sub_4C49F0_ptr = (const void*)0x4C49F0;
+ObjectMaster* sub_4C49F0(int length_, void* unknown, CollisionInfo** array, float* out_)
+{
+	ObjectMaster* result = nullptr;
+
+	__asm
+	{
+		mov eax, length_
+		mov ecx, unknown
+		push out_
+		push array
+		call sub_4C49F0_ptr
+		add esp, 8
+		mov result, eax
+	}
+
+	return result;
+}
+
+//BOOL __usercall sub_628A50@<eax>(CollisionInfo *a1@<eax>, EntityData1 *a2@<edi>)
+// ReSharper disable once CppDeclaratorNeverUsed
+static const void* sub_628A50_ptr = (const void*)0x628A50;
+BOOL sub_628A50(CollisionInfo *a1, EntityData1 *a2)
+{
+	auto result = FALSE;
+
+	__asm
+	{
+		mov eax, a1
+		mov edi, a2
+		call sub_628A50_ptr
+		mov result, eax
+	}
+
+	return result;
+}
+
+void __cdecl GammaTargetThing_r(ObjectMaster *out)
+{
+	int v8; // edx@15
+	float v13; // [sp+8h] [bp-8h]@7
+
+	const auto CollisionList_2_Count = (int)colliders[2].size();
+	const auto CollisionList_3_Count = (int)colliders[3].size();
+
+	_DWORD *v1 = (_DWORD*)out->UnknownB_ptr;
+	int v2 = *(BYTE *)v1;
+	int v3 = v1[1];
+	int v4 = v1[2];
+	int v14 = v1[1];
+	if (v2)
+	{
+		if (v2 != 1)
+		{
+			goto LABEL_20;
+		}
+	}
+	else
+	{
+		*(BYTE *)v1 = 1;
+	}
+	if (*(WORD *)(v4 + 18) <= 0 && *(BYTE *)(v4 + 4) < 32)
+	{
+		ObjectMaster *v5 = sub_4C49F0(CollisionList_2_Count, (void *)v4, colliders[2].data(), (float *)&out);
+		ObjectMaster *v6 = sub_4C49F0(CollisionList_3_Count, (void *)v4, colliders[3].data(), &v13);
+		if (!v5 || v6 && *(float *)&out > (double)v13)
+		{
+			v5 = v6;
+		}
+		if (v5)
+		{
+			ObjectMaster *v7 = LoadObject(LoadObj_Data1, 5, (ObjectFuncPtr)0x4CF090);
+			if (v7)
+			{
+				if ((v8 = (int)AllocateArray(1, 52)))
+				{
+					out = (ObjectMaster *)*(BYTE *)(v3 + 8);
+					if (sub_4C47B0(v5))
+					{
+						signed __int16 v9 = ++*(WORD *)(v4 + 10);
+						if (v9 >= 99)
+						{
+							v9 = 99;
+						}
+						*(WORD *)(v4 + 10) = v9;
+					}
+					*(_DWORD *)(v4 + 48) = *(_DWORD*)&v7;
+					*(WORD *)(v4 + 18) = 8;
+					v7->Data1->Position = v5->Data1->Position;
+					int v10 = v14;
+					v7->UnknownB_ptr = (void *)v8;
+					char v11 = *(BYTE *)(v4 + 10);
+					*(_DWORD *)(v8 + 12) = v10;
+					ObjectMaster *v12 = out;
+					*(BYTE *)(v8 + 1) = v11;
+					*(_DWORD *)(v8 + 8) = *(_DWORD*)&v5;
+					*(_DWORD *)(v8 + 16) = v4;
+					*(_DWORD *)(v8 + 20) = 0;
+					*(_DWORD *)(v8 + 48) = *(_DWORD*)&v5->MainSub;
+					*(WORD *)(v8 + 4) = EntityData2Ptrs[(signed int)v12]->CharacterData->Upgrades;
+				}
+				else
+				{
+					DeleteObjectMaster(v7);
+				}
+			}
+		}
+	}
+LABEL_20:
+	sub_4C4850(CollisionList_2_Count, colliders[2].data());
+	sub_4C4850(CollisionList_3_Count, colliders[3].data());
+}
+
+ObjectMaster *__cdecl sub_628B20(EntityData1 *a1)
+{
+	ObjectMaster *result; // eax@30
+	float magnitudes[6]; // [sp+18h] [bp-30h]@5
+	CollisionInfo *info_ptrs[6]; // [sp+30h] [bp-18h]@5
+
+	const auto CollisionList_2_Count = (int)colliders[2].size();
+	const auto CollisionList_3_Count = (int)colliders[3].size();
+
+	signed int v1 = 0;
+	signed int v2 = 0;
+	EntityData1 *player1 = CharObj1Ptrs[0];
+	if (CollisionList_2_Count)
+	{
+		do
+		{
+			CollisionInfo *v3 = colliders[2][v1];
+			EntityData1 *v4 = v3->Object->Data1;
+			double v5 = v4->Position.x - player1->Position.x;
+
+			// re-asigning pointer to Position (NJS_VECTOR*)
+			//v4 = (EntityData1 *)((char *)v4 + 32);
+			auto _v4 = &v4->Position;
+			double v6 = *(float *)&_v4->y - player1->Position.y;
+			double v7 = _v4->z - player1->Position.z;
+			double v8 = v7 * v7 + v6 * v6 + v5 * v5;
+			if (v8 < 9000000.0 && sub_628A50(v3, a1))
+			{
+				if (v2 >= 6)
+				{
+					break;
+				}
+				info_ptrs[v2] = v3;
+				float v9 = (float)v8;
+				magnitudes[v2++] = v9;
+			}
+			++v1;
+		} while (v1 < CollisionList_2_Count);
+	}
+	signed int v10 = 0;
+	if (CollisionList_3_Count)
+	{
+		NJS_VECTOR *player_pos = &player1->Position;
+		do
+		{
+			CollisionInfo *v11 = colliders[3][v10];
+			EntityData1 *v12 = v11->Object->Data1;
+			double v13 = v12->Position.x - player_pos->x;
+
+			// re-asigning pointer to Position (NJS_VECTOR*)
+			//v12 = (EntityData1 *)((char *)v12 + 32);
+			auto _v12 = &v12->Position;
+			double v14 = _v12->z - player_pos->z;
+			double v15 = v14 * v14 + (_v12->y - player_pos->y) * (_v12->y - player_pos->y) + v13 * v13;
+			if (v15 < 9000000.0 && sub_628A50(v11, a1))
+			{
+				if (v2 >= 6)
+				{
+					break;
+				}
+				info_ptrs[v2] = v11;
+				float v16 = (float)v15;
+				magnitudes[v2++] = v16;
+			}
+			++v10;
+		} while (v10 < CollisionList_3_Count);
+	}
+	if (v2 <= 0)
+	{
+		result = 0;
+	}
+	else
+	{
+		double v17 = magnitudes[0];
+		ObjectMaster *v18 = info_ptrs[0]->Object;
+		signed int v19 = 1;
+		if (v2 - 1 >= 4)
+		{
+			signed int v20 = 4;
+			do
+			{
+				if (v17 > magnitudes[v19])
+				{
+					v17 = magnitudes[v19];
+					v18 = info_ptrs[v19]->Object;
+				}
+				if (v17 > magnitudes[v19 + 1])
+				{
+					v17 = magnitudes[v19 + 1];
+					v18 = info_ptrs[v19 + 1]->Object;
+				}
+				if (v17 > magnitudes[v19 + 2])
+				{
+					v17 = magnitudes[v19 + 2];
+					v18 = info_ptrs[v19 + 2]->Object;
+				}
+				if (v17 > magnitudes[v19 + 3])
+				{
+					v17 = magnitudes[v19 + 3];
+					v18 = info_ptrs[v19 + 3]->Object;
+				}
+				v20 += 4;
+				v19 += 4;
+			} while (v20 < v2);
+		}
+		for (; v19 < v2; ++v19)
+		{
+			if (v17 > magnitudes[v19])
+			{
+				v17 = magnitudes[v19];
+				v18 = info_ptrs[v19]->Object;
+			}
+		}
+		result = v18;
+	}
+	return result;
+}
+
 void Collision_Init()
 {
 	WriteJump((void*)0x0041B970, ClearLists);
@@ -298,4 +551,7 @@ void Collision_Init()
 	WriteJump((void*)0x00420560, RunCollision_3_r);
 	WriteJump((void*)0x00420640, RunCollision_4_r);
 	WriteJump((void*)0x004206A0, RunCollision_5_r);
+
+	WriteJump(GammaTargetThing, GammaTargetThing_r);
+	WriteJump((void*)0x628B20, sub_628B20);
 }
