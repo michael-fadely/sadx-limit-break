@@ -3,16 +3,12 @@
 static short last_level = 0;
 static short last_act = 0;
 
-static const Uint32 sprite_count = 4096;
-static Uint8 table[80 * sprite_count];
-
-#ifdef _DEBUG
-DataPointer(int, Display_SPR_TASK, 0x03B28118);
-#endif
+static const Uint32 SPRITE_COUNT = 4096;
+static Uint8 table[80 * SPRITE_COUNT];
 
 static void __cdecl InitSpriteTable_r(void*, Uint32)
 {
-	InitSpriteTable((QueuedModelParticle*)table, sprite_count);
+	InitSpriteTable((QueuedModelParticle*)table, SPRITE_COUNT);
 
 #ifdef _DEBUG
 	Display_SPR_TASK = 1;
@@ -40,7 +36,7 @@ extern "C"
 
 		// TODO: fix; this pulls the draw distance from the *last* stage, if any
 		if (last_level != CurrentLevel || last_act != CurrentAct
-			|| pad && pad->PressedButtons & Buttons_C
+			|| (pad && pad->PressedButtons & Buttons_C)
 			|| abs(clip_current) < FLT_EPSILON)
 		{
 			last_level = CurrentLevel;

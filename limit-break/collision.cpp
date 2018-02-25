@@ -6,7 +6,6 @@
 //DataArray(CollisionInfo*, TornadoTargets, 0x03C82360, 6);
 //DataArray(ObjectMaster*, TornadoTarget_ObjectsMaybe, 0x03C82348, 6);
 
-DataArray(EntityData2*, EntityData2Ptrs, 0x03B36DD0, 8);
 FunctionPointer(int, sub_4C47B0, (ObjectMaster *a1), 0x4C47B0);
 
 // TODO:
@@ -94,7 +93,7 @@ static void __cdecl AddToCollisionList_r(EntityData1* entity)
 
 		if (!is_player || !is_chao_stage)
 		{
-			DoSomeCollisionThing(entity);
+			Collision_InitThings(entity);
 		}
 
 		if (collision->List < 0 || collision->List > 9)
@@ -125,7 +124,7 @@ static void __cdecl RunPlayerCollision_r()
 	{
 		for (auto& i : entities[0])
 		{
-			DoSomeCollisionThing(i);
+			Collision_InitThings(i);
 		}
 	}
 
@@ -374,7 +373,7 @@ void __cdecl GammaTargetThing_r(ObjectMaster *out)
 	{
 		ObjectMaster *v5 = sub_4C49F0(CollisionList_2_Count, (void *)v4, colliders[2].data(), (float *)&out);
 		ObjectMaster *v6 = sub_4C49F0(CollisionList_3_Count, (void *)v4, colliders[3].data(), &v13);
-		if (!v5 || v6 && *(float *)&out > (double)v13)
+		if (!v5 || (v6 && *(float *)&out > (double)v13))
 		{
 			v5 = v6;
 		}
@@ -433,7 +432,7 @@ ObjectMaster *__cdecl sub_628B20(EntityData1 *a1)
 
 	signed int v1 = 0;
 	signed int v2 = 0;
-	EntityData1 *player1 = CharObj1Ptrs[0];
+	EntityData1* player1 = EntityData1Ptrs[0];
 	if (CollisionList_2_Count)
 	{
 		do
@@ -491,7 +490,7 @@ ObjectMaster *__cdecl sub_628B20(EntityData1 *a1)
 	}
 	if (v2 <= 0)
 	{
-		result = 0;
+		result = nullptr;
 	}
 	else
 	{

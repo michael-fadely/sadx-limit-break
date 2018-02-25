@@ -13,11 +13,6 @@ static Uint32 object_average = 0;
 
 VoidFunc(sub_51A740, 0x51A740);
 
-DataArray(ObjectMaster*, ObjectListThing, 0x03ABDBC4, 8);
-DataPointer(ObjectMaster*, MasterObjectArray, 0x03ABDBEC);
-DataPointer(ObjectMaster*, MasterObjectArray_Base, 0x03ABDBE4);
-DataPointer(ObjectMaster*, CurrentObject, 0x03ABDBF8);
-
 // ReSharper disable once CppDeclaratorNeverUsed
 static ObjectMaster* __cdecl AllocateObjectMaster_r(int index, ObjectFuncPtr LoadSub)
 {
@@ -103,7 +98,7 @@ static void __cdecl InitObjectQueue()
 
 	MasterObjectArray_Base = ptr;
 	MasterObjectArray = ptr;
-	CurrentObject = nullptr;
+	CurrentObject = 0;
 }
 
 static void __cdecl InitMasterObjectArray_r()

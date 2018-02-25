@@ -1,8 +1,7 @@
 #include "stdafx.h"
 #include "textures.h"
 
-FastcallFunctionPointer(void, Direct3D_PVRToD3D, (NJS_TEXMEMLIST*, void*), 0x0078CBD0);
-DataPointer(NJS_TEXMEMLIST*, CurrentTexMemList, 0x03CE7128);
+FastcallFunctionPointer(void, Direct3D_PvrToTexture, (NJS_TEXMEMLIST*, void*), 0x0078CBD0);
 
 static std::deque<NJS_TEXMEMLIST> global_textures;
 
@@ -68,7 +67,7 @@ static Sint32 __cdecl sub_77FA10(Uint32 gbix, void* texture)
 		if (i.globalIndex == gbix)
 		{
 			DoSomethingWithPalette(*(NJS_TEXPALETTE**)&i.bank);
-			Direct3D_PVRToD3D(&i, texture);
+			Direct3D_PvrToTexture(&i, texture);
 			result = 1;
 			break;
 		}
