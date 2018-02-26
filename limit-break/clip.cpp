@@ -27,20 +27,21 @@ static void set_clip(float r, ClipType type)
 
 	// If the upper limit is 0, or if the provided distance is less than the limit,
 	// and if it exceeds the current clip distance, update it.
-	if ((clip_limit == 0.0f || r <= clip_limit) && r > clip_current)
+	/*if ((clip_limit == 0.0f || r <= clip_limit) && r > clip_current)
 	{
 		if (type == ClipType::Clip)
 		{
-			//PrintDebug("CLIP: %f -> %f\n", clip_current, r);
+			PrintDebug("CLIP: %f -> %f\n", clip_current, r);
 		}
 		else if (type == ClipType::Draw)
 		{
-			//PrintDebug("DRAW: %f -> %f\n", clip_current, r);
+			PrintDebug("DRAW: %f -> %f\n", clip_current, r);
 		}
 
-		//clip_current = r;
+
+		clip_current = r;
 		return;
-	}
+	}*/
 
 	// Otherwise if the clip limit is 0, just abort
 	if (clip_limit == 0.0f)

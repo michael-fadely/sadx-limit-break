@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SADXModLoader.h>
+#include <Trampoline.h>
 #include <vector>
 #include <deque>
 #include <cstdint>
@@ -10,4 +11,3 @@
 #include "collision.h"
 #include "textures.h"
 #include "set.h"
-#include "../sadx-mod-loader/libmodutils/Trampoline.h"

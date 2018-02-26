@@ -1,27 +1,57 @@
 #include "stdafx.h"
 
-static short last_level = 0;
-static short last_act = 0;
-
 static const Uint32 SPRITE_COUNT = 4096;
 static Uint8 table[80 * SPRITE_COUNT];
 
 static void __cdecl InitSpriteTable_r(void*, Uint32)
 {
-	InitSpriteTable((QueuedModelParticle*)table, SPRITE_COUNT);
+	InitSpriteTable(reinterpret_cast<QueuedModelParticle*>(table), SPRITE_COUNT);
 
 #ifdef _DEBUG
 	Display_SPR_TASK = 1;
 #endif
 }
 
+static ObjectFuncPtr skybox_mainsub = nullptr;
+
+DataArray(Rotation3, stru_90BFE8, 0x90BFE8, 0);
+DataArray(ObjectFuncPtr, SkyboxObjects, 0x0090C1F0, 44);
+
+static void __cdecl clip_mainsub(ObjectMaster* _this)
+{
+	skybox_mainsub(_this);
+
+	if (_this->MainSub != skybox_mainsub && _this->MainSub != clip_mainsub)
+	{
+		skybox_mainsub = _this->MainSub;
+		_this->MainSub = clip_mainsub;
+		return;
+	}
+
+	clip_reset();
+}
+
+void __cdecl LoadSkyboxObject_r()
+{
+	SetGlobalPoint2Col_Colors(stru_90BFE8[CurrentLevel].x,
+		stru_90BFE8[CurrentLevel].y,
+		stru_90BFE8[CurrentLevel].z);
+
+	if (SkyboxObjects[CurrentLevel])
+	{
+		skybox_mainsub = SkyboxObjects[CurrentLevel];
+		LoadObject(LoadObj_Data1, 1, clip_mainsub);
+	}
+}
+
 extern "C"
 {
-	__declspec(dllexport) ModInfo SADXModInfo = { ModLoaderVer };
+	__declspec(dllexport) ModInfo SADXModInfo = { ModLoaderVer, nullptr, nullptr, 0, nullptr, 0, nullptr, 0, nullptr, 0 };
 
 	__declspec(dllexport) void __cdecl Init()
 	{
-		WriteCall((void*)0x00415A60, InitSpriteTable_r);
+		WriteCall(reinterpret_cast<void*>(0x00415A60), InitSpriteTable_r);
+		WriteJump(LoadSkyboxObject, LoadSkyboxObject_r);
 
 		object_init();
 		collision_init();
@@ -32,20 +62,7 @@ extern "C"
 
 	__declspec(dllexport) void __cdecl OnFrame()
 	{
-		const auto pad = ControllerPointers[0];
-
-		// TODO: fix; this pulls the draw distance from the *last* stage, if any
-		if (last_level != CurrentLevel || last_act != CurrentAct
-			|| (pad && pad->PressedButtons & Buttons_C)
-			|| abs(clip_current) < FLT_EPSILON)
-		{
-			last_level = CurrentLevel;
-			last_act = CurrentAct;
-			clip_reset();
-		}
-
 		DisplayDebugStringFormatted(NJM_LOCATION(1, 5), "CLIP: %f", clip_current);
-
 		object_OnFrame();
 		textures_OnFrame();
 	}
