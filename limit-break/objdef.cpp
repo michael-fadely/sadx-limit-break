@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "objdef.h"
 
-void Ring_Main_r(ObjectMaster *a1) {
+void Ring_Main_SkyDeck(ObjectMaster *a1) {
 	if (a1->Data1->Scale.x == -1)
 		a1->Data1->Scale.x = 4;
 
@@ -23,5 +23,5 @@ void objdef_init() {
 	WriteCall((void**)0x6137E8, squareroot_r);
 	
 	//SkyDeck ring hack
-	WriteData((ObjectFuncPtr*)0x2230F2C, Ring_Main_r);
+	WriteData((ObjectFuncPtr*)0x2230F2C, Ring_Main_SkyDeck);
 }
