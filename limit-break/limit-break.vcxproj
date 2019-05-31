@@ -88,6 +88,7 @@
     <ClInclude Include="clip.h" />
     <ClInclude Include="collision.h" />
     <ClInclude Include="misc.h" />
+    <ClInclude Include="objdef.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="set.h" />
     <ClInclude Include="stdafx.h" />
@@ -98,6 +99,7 @@
     <ClCompile Include="clip.cpp" />
     <ClCompile Include="collision.cpp" />
     <ClCompile Include="mod.cpp" />
+    <ClCompile Include="objdef.cpp" />
     <ClCompile Include="object.cpp" />
     <ClCompile Include="set.cpp" />
     <ClCompile Include="stdafx.cpp">

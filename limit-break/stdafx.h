@@ -11,3 +11,4 @@
 #include "collision.h"
 #include "textures.h"
 #include "set.h"
+#include "objdef.h"

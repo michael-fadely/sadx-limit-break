@@ -58,6 +58,7 @@ extern "C"
 		clip_init();
 		textures_init();
 		set_init();
+		objdef_init();
 	}
 
 	__declspec(dllexport) void __cdecl OnFrame()
