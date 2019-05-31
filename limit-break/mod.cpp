@@ -58,11 +58,14 @@ extern "C"
 		clip_init();
 		textures_init();
 		set_init();
+		objdef_init();
 	}
 
 	__declspec(dllexport) void __cdecl OnFrame()
 	{
+#ifdef _DEBUG
 		DisplayDebugStringFormatted(NJM_LOCATION(1, 5), "CLIP: %f", clip_current);
+#endif
 		object_OnFrame();
 		textures_OnFrame();
 	}

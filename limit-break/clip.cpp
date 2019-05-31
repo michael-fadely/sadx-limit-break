@@ -53,6 +53,28 @@ static void set_clip(float r, ClipType type)
 	clip_current = clip_limit;
 }
 
+signed int __cdecl ClipObject_orig(ObjectMaster *a1, float dist)
+{
+	SETObjData *SetData = a1->SETData.SETData;;
+	
+	if (SetData && SetData->Flags & 8 || dist == 0.0)
+	{
+		return 0;
+	}
+
+	NJS_VECTOR *pos = &a1->Data1->Position;
+
+	if ((Camera_Data1 && ObjectInRange(&Camera_Data1->Position, pos->x, pos->y, pos->z, dist))
+		|| (EntityData1Ptrs[0] && ObjectInRange(&EntityData1Ptrs[0]->Position, pos->x, pos->y, pos->z, dist))
+		|| (EntityData1Ptrs[1] && !LOBYTE(EntityData1Ptrs[1]->CharIndex) && ObjectInRange(&EntityData1Ptrs[1]->Position, pos->x, pos->y, pos->z, 1600.0)))
+	{
+		return 0;
+	}
+
+	a1->MainSub = DeleteObjectMaster;
+	return 1;
+}
+
 static int __cdecl ClipSetObject_r(ObjectMaster* a1)
 {
 	auto set = a1->SETData.SETData;
@@ -64,15 +86,15 @@ static int __cdecl ClipSetObject_r(ObjectMaster* a1)
 
 	if (!(ControllerPointers[0]->HeldButtons & Buttons_Z))
 	{
-		return ClipObject(a1, set != nullptr ? max(clip_current, set->Distance) : clip_current);
+		return ClipObject_orig(a1, set != nullptr ? max(clip_current, set->Distance) : clip_current);
 	}
 
 	if (set)
 	{
-		return ClipObject(a1, set->Distance);
+		return ClipObject_orig(a1, set->Distance);
 	}
 
-	return ClipObject(a1, clip_default);
+	return ClipObject_orig(a1, clip_default);
 }
 
 // ReSharper disable once CppDeclaratorNeverUsed
@@ -104,6 +126,7 @@ void clip_init()
 {
 	WriteJump(ClipSetObject, ClipSetObject_r);
 	WriteJump(ClipSetObject_Min, ClipSetObject_r);
+	WriteJump(ClipObject, ClipSetObject_r);
 	WriteCall((void*)0x0046BBB9, ObjectInRange_asm);
 	WriteData((float**)0x0046B6F8, &clip_current);
 	WriteData((float**)0x0046B713, &clip_current);

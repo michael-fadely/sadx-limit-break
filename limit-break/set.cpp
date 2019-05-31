@@ -38,5 +38,8 @@ void set_init()
 	WriteData((int*)0x0046BF3D, SET_COUNT);
 	WriteData((int*)0x0046BF44, SET_COUNT);
 
+	WriteData((short**)0x0046C1DB, &set_table[SET_COUNT].Flags);
+	WriteData((int*)0x0046C1E0, (SET_COUNT + 1));
+
 	WriteData((int*)0x00591A32, MISSION_SET_COUNT);
 }
