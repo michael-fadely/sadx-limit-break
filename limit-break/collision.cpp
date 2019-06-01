@@ -34,7 +34,7 @@ static void __cdecl CheckSelfCollision(Uint32 num)
 {
 	auto& list = entities[num];
 
-	for (Uint32 i = 0; i < list.size(); i++)
+	for (size_t i = 0; i < list.size(); i++)
 	{
 		for (Uint32 x = 0; x < list.size(); x++)
 		{
@@ -67,7 +67,7 @@ static void __cdecl ClearLists()
 {
 	Collision_Statistics();
 
-	for (Uint32 i = 0; i < CollisionList::COUNT; i++)
+	for (size_t i = 0; i < CollisionList::COUNT; i++)
 	{
 		entities[i].clear();
 		colliders[i].clear();

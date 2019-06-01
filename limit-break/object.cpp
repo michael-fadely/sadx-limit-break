@@ -280,7 +280,7 @@ void object_OnFrame()
 		{
 			float result = 0.0f;
 
-			for (Uint32 i = 0; i < p; i++)
+			for (size_t i = 0; i < p; i++)
 			{
 				result += points[i];
 			}
