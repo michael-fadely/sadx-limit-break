@@ -1,8 +1,8 @@
 #include "stdafx.h"
 #include "set.h"
 
-#define SET_COUNT 4096
-#define MISSION_SET_COUNT 2048
+constexpr uint32_t SET_COUNT         = 4096;
+constexpr uint32_t MISSION_SET_COUNT = 2048;
 
 static SETObjData set_table[SET_COUNT] {};
 static MissionSETData mission_set_table[MISSION_SET_COUNT] {};
@@ -33,10 +33,13 @@ void set_init()
 	WriteData((ObjectMaster***)0x00591C26, &mission_set_table[0].ObjInstance);
 	WriteData((ObjectMaster***)0x0059221D, &mission_set_table[0].ObjInstance);
 
-	WriteData((int*)0x0046BD64, SET_COUNT);
-	WriteData((int*)0x0046BD6C, SET_COUNT);
-	WriteData((int*)0x0046BF3D, SET_COUNT);
-	WriteData((int*)0x0046BF44, SET_COUNT);
+	WriteData((uint32_t*)0x0046BD64, SET_COUNT);
+	WriteData((uint32_t*)0x0046BD6C, SET_COUNT);
+	WriteData((uint32_t*)0x0046BF3D, SET_COUNT);
+	WriteData((uint32_t*)0x0046BF44, SET_COUNT);
 
-	WriteData((int*)0x00591A32, MISSION_SET_COUNT);
+	WriteData((short**)0x0046C1DB, &set_table[SET_COUNT - 1].Flags);
+	WriteData((uint32_t*)0x0046C1E0, SET_COUNT);
+
+	WriteData((uint32_t*)0x00591A32, MISSION_SET_COUNT);
 }
