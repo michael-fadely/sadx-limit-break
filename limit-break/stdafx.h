@@ -1,10 +1,13 @@
 #pragma once
 
+#include <algorithm>
+#include <cstdint>
+#include <deque>
+#include <limits>
+#include <vector>
+
 #include <SADXModLoader.h>
 #include <Trampoline.h>
-#include <vector>
-#include <deque>
-#include <cstdint>
 
 #include "object.h"
 #include "clip.h"

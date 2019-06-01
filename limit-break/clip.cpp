@@ -64,7 +64,7 @@ static int __cdecl ClipSetObject_r(ObjectMaster* a1)
 
 	if (!(ControllerPointers[0]->HeldButtons & Buttons_Z))
 	{
-		return ClipObject(a1, set != nullptr ? max(clip_current, set->Distance) : clip_current);
+		return ClipObject(a1, set != nullptr ? std::max(clip_current, set->Distance) : clip_current);
 	}
 
 	if (set)
@@ -79,7 +79,7 @@ static int __cdecl ClipSetObject_r(ObjectMaster* a1)
 static int __cdecl ObjectInRange_r(NJS_VECTOR* from, float x, float y, float z, float range)
 {
 	set_clip(range, ClipType::Draw);
-	return ObjectInRange(from, x, y, z, (ControllerPointers[0]->HeldButtons & Buttons_Z) ? range : max(range, clip_current));
+	return ObjectInRange(from, x, y, z, (ControllerPointers[0]->HeldButtons & Buttons_Z) ? range : std::max(range, clip_current));
 }
 
 static void __declspec(naked) ObjectInRange_asm()
@@ -128,7 +128,7 @@ bool clip_increase(float inc)
 		return false;
 	}
 
-	clip_limit = min(clip_limit + inc, clip_max);
+	clip_limit = std::min(clip_limit + inc, clip_max);
 	return true;
 }
 
@@ -158,6 +158,6 @@ bool clip_decrease(float dec)
 		result = false;
 	}
 
-	clip_current = min(clip_current, clip_limit);
+	clip_current = std::min(clip_current, clip_limit);
 	return result;
 }
