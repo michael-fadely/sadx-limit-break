@@ -34,8 +34,8 @@ static void __cdecl clip_mainsub(ObjectMaster* _this)
 void __cdecl LoadSkyboxObject_r()
 {
 	SetGlobalPoint2Col_Colors(stru_90BFE8[CurrentLevel].x,
-		stru_90BFE8[CurrentLevel].y,
-		stru_90BFE8[CurrentLevel].z);
+	                          stru_90BFE8[CurrentLevel].y,
+	                          stru_90BFE8[CurrentLevel].z);
 
 	if (SkyboxObjects[CurrentLevel])
 	{
