@@ -43,6 +43,23 @@ void __cdecl LoadSkyboxObject_r()
 	}
 }
 
+static constexpr auto LATEALLOCA_SIZE = 1024 * 1024;
+
+void __cdecl late_alloca_init_r()
+{
+	if (late_alloca_buffer)
+	{
+		delete[] late_alloca_buffer;
+	}
+
+	late_alloca_size = LATEALLOCA_SIZE;
+	late_alloca_buffer = new uint8_t[LATEALLOCA_SIZE];
+	late_alloca_end = late_alloca_buffer + LATEALLOCA_SIZE;
+
+	memcpy(reinterpret_cast<void*>(0x90084C), reinterpret_cast<void*>(0x900858), sizeof(NJS_VECTOR));
+	late_alloca_reset();
+}
+
 extern "C"
 {
 	__declspec(dllexport) ModInfo SADXModInfo = { ModLoaderVer, nullptr, nullptr, 0, nullptr, 0, nullptr, 0, nullptr, 0 };
@@ -51,6 +68,8 @@ extern "C"
 	{
 		WriteCall(reinterpret_cast<void*>(0x00415A60), InitSpriteTable_r);
 		WriteJump(LoadSkyboxObject, LoadSkyboxObject_r);
+
+		WriteJump(late_alloca_init, late_alloca_init_r);
 
 		object_init();
 		collision_init();
