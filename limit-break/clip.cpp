@@ -1,10 +1,6 @@
 #include "stdafx.h"
+#include <Trampoline.h>
 #include "clip.h"
-
-enum class ClipType
-{
-	Clip, Draw
-};
 
 const float clip_default = 168100.0f;
 
@@ -13,7 +9,61 @@ float clip_limit   = 0.0f; // this is written to externally
 float clip_min     = FLT_MAX;
 float clip_max     = 0.0f;
 
-static void set_clip(float r, ClipType type)
+static int __cdecl ClipObject_r(ObjectMaster* a1, float dist);
+static Trampoline ClipObject_t(0x0046C010, 0x0046C018, ClipObject_r);
+
+int __cdecl clip_object(ObjectMaster* a1, float dist)
+{
+	const auto set = a1->SETData.SETData;
+
+	if (set && set->Flags & 8 || std::abs(dist) < std::numeric_limits<float>::epsilon())
+	{
+		return 0;
+	}
+
+	const auto entity = a1->Data1;
+	const auto y      = entity->Position.y;
+	const auto z      = entity->Position.z;
+	const auto x      = entity->Position.x;
+
+	/*
+	// this is the original behavior which is hard-coded to the first two player entities;
+	// using the for loop below opens up support for sadx-multitap, sadx-online, etc
+	if (Camera_Data1 && ObjectInRange(&Camera_Data1->Position, entity->Position.x, y, entity->Position.z, dist)
+	    || EntityData1Ptrs[0] && ObjectInRange(&EntityData1Ptrs[0]->Position, x, y, z, dist)
+	    || EntityData1Ptrs[1]
+	    && !EntityData1Ptrs[1]->CharIndex.SByte[1]
+	    && ObjectInRange(&EntityData1Ptrs[1]->Position, x, y, z, 1600.0))
+	{
+		return 0;
+	}
+	 */
+
+	if (Camera_Data1 && ObjectInRange(&Camera_Data1->Position, x, y, z, dist))
+	{
+		return 0;
+	}
+
+	for (size_t i = 0; i < EntityData1Ptrs_Length; i++)
+	{
+		auto player = EntityData1Ptrs[i];
+
+		if (player == nullptr)
+		{
+			continue;
+		}
+
+		if (ObjectInRange(&player->Position, x, y, z, dist))
+		{
+			return 0;
+		}
+	}
+
+	a1->MainSub = DeleteObjectMaster;
+	return 1;
+}
+
+static void set_clip(float r)
 {
 	if (r < clip_min && r > clip_default)
 	{
@@ -25,25 +75,6 @@ static void set_clip(float r, ClipType type)
 		clip_max = r;
 	}
 
-	// If the upper limit is 0, or if the provided distance is less than the limit,
-	// and if it exceeds the current clip distance, update it.
-	/*if ((clip_limit == 0.0f || r <= clip_limit) && r > clip_current)
-	{
-		if (type == ClipType::Clip)
-		{
-			PrintDebug("CLIP: %f -> %f\n", clip_current, r);
-		}
-		else if (type == ClipType::Draw)
-		{
-			PrintDebug("DRAW: %f -> %f\n", clip_current, r);
-		}
-
-
-		clip_current = r;
-		return;
-	}*/
-
-	// Otherwise if the clip limit is 0, just abort
 	if (clip_limit == 0.0f)
 	{
 		return;
@@ -53,32 +84,42 @@ static void set_clip(float r, ClipType type)
 	clip_current = clip_limit;
 }
 
-static int __cdecl ClipSetObject_r(ObjectMaster* a1)
+static int do_clip(ObjectMaster* a1, float distance = clip_default)
 {
-	auto set = a1->SETData.SETData;
+	const auto set = a1->SETData.SETData;
 
 	if (set)
 	{
-		set_clip(set->Distance, ClipType::Clip);
+		set_clip(set->Distance);
 	}
 
 	if (!(ControllerPointers[0]->HeldButtons & Buttons_Z))
 	{
-		return ClipObject(a1, set != nullptr ? std::max(clip_current, set->Distance) : clip_current);
+		return clip_object(a1, set != nullptr ? std::max(clip_current, set->Distance) : clip_current);
 	}
 
 	if (set)
 	{
-		return ClipObject(a1, set->Distance);
+		return clip_object(a1, set->Distance);
 	}
 
-	return ClipObject(a1, clip_default);
+	return clip_object(a1, distance);
+}
+
+static int __cdecl ClipObject_r(ObjectMaster* a1, float dist)
+{
+	return do_clip(a1);
+}
+
+static int __cdecl ClipSetObject_r(ObjectMaster* a1)
+{
+	return do_clip(a1);
 }
 
 // ReSharper disable once CppDeclaratorNeverUsed
 static int __cdecl ObjectInRange_r(NJS_VECTOR* from, float x, float y, float z, float range)
 {
-	set_clip(range, ClipType::Draw);
+	set_clip(range);
 	return ObjectInRange(from, x, y, z, (ControllerPointers[0]->HeldButtons & Buttons_Z) ? range : std::max(range, clip_current));
 }
 
@@ -112,13 +153,13 @@ void clip_init()
 
 void clip_reset(float limit)
 {
-	// LevelDrawDistance
-	const auto f = -*(float*)0x03ABDC74 * 0.5f;
+	// HACK: this halving here "fixes" (covers up) the platforms in red mountain disappearing, etc
+	const auto f = std::min(-LevelDrawDistance.Maximum, -SkyboxDrawDistance.Maximum) * 0.5f;
 
 	clip_current = f * f;
-	clip_limit = limit;
-	clip_min = clip_current;
-	clip_max = 0.0f;
+	clip_limit   = limit;
+	clip_min     = clip_current;
+	clip_max     = 0.0f;
 }
 
 bool clip_increase(float inc)
