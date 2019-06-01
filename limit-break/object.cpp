@@ -1,13 +1,14 @@
 #include "stdafx.h"
 #include "object.h"
+ #include <cmath>
 #include "misc.h"
 
 static Uint32 object_count = 0;
 static std::deque<ObjectMaster> MasterObjectArray_r = {};
 static bool queue_initialized = false;
 
-static const Uint32 points_length = 60;
-static Uint32 points[points_length] = {};
+static constexpr Uint32 POINTS_LENGTH = 60;
+static Uint32 points[POINTS_LENGTH] = {};
 static Uint32 points_i = 0;
 static Uint32 object_average = 0;
 
@@ -98,7 +99,7 @@ static void __cdecl InitObjectQueue()
 
 	MasterObjectArray_Base = ptr;
 	MasterObjectArray = ptr;
-	CurrentObject = 0;
+	CurrentObject = nullptr;
 }
 
 static void __cdecl InitMasterObjectArray_r()
@@ -275,7 +276,7 @@ void object_OnFrame()
 		const auto p = points_i;
 		points[p] = object_count;
 
-		if (++points_i >= points_length)
+		if (++points_i >= POINTS_LENGTH)
 		{
 			float result = 0.0f;
 
@@ -284,11 +285,11 @@ void object_OnFrame()
 				result += points[i];
 			}
 
-			object_average = (Uint32)ceil(result / (float)points_length);
+			object_average = static_cast<Uint32>(std::ceil(result / (float)POINTS_LENGTH));
 		}
 	}
 
-	points_i %= points_length;
+	points_i %= POINTS_LENGTH;
 
 #ifdef _DEBUG
 	DisplayDebugStringFormatted(NJM_LOCATION(1, 4), "COUNT: REAL/AVG/MAX: %03u / %03u / %03u", object_count, object_average, MasterObjectArray_r.size());
