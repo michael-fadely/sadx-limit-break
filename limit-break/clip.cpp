@@ -6,7 +6,7 @@ const float clip_default = 168100.0f;
 
 float clip_current = clip_default;
 float clip_limit   = 0.0f; // this is written to externally
-float clip_min     = FLT_MAX;
+float clip_min     = std::numeric_limits<float>::max();
 float clip_max     = 0.0f;
 
 static int __cdecl ClipObject_r(ObjectMaster* a1, float dist);
