@@ -15,7 +15,6 @@ static void __cdecl InitSpriteTable_r(void*, Uint32)
 static ObjectFuncPtr skybox_mainsub = nullptr;
 
 DataArray(Rotation3, stru_90BFE8, 0x90BFE8, 0);
-DataArray(ObjectFuncPtr, SkyboxObjects, 0x0090C1F0, 44);
 
 static void __cdecl clip_mainsub(ObjectMaster* _this)
 {
