@@ -70,7 +70,6 @@ std::vector<DynamicCOL> dynacol_b;
 
 void __cdecl DynamicCOL_RunA()
 {
-	DynamicCOL* dynacol_landtable; // ebp
 	float v1; // edx
 	float v2; // edx
 	float v3; // eax
@@ -90,18 +89,15 @@ void __cdecl DynamicCOL_RunA()
 	float v18; // ST20_4
 	float v19; // ST1C_4
 	float v20; // ST18_4
-	COL* v21; // ebx
-	int v22; // eax
 	int v23; // edi
-	float* v24; // esi
-	float v25; // ST20_4
-	float v26; // st7
-	float v27; // st6
-	float v28; // ST00_4
-	int v34; // [esp+14h] [ebp-3Ch]
-	COL* v35; // [esp+18h] [ebp-38h]
-	float v36; // [esp+1Ch] [ebp-34h]
-	int i; // [esp+24h] [ebp-2Ch]
+	float* v24 = nullptr; // esi
+	float v25 = 0.0f; // ST20_4
+	float v26 = 0.0f; // st7
+	float v27 = 0.0f; // st6
+	float v28 = 0.0f; // ST00_4
+	int v34 = 0; // [esp+14h] [ebp-3Ch]
+	COL* v35 = nullptr; // [esp+18h] [ebp-38h]
+	float v36 = 0.0f; // [esp+1Ch] [ebp-34h]
 	NJS_VECTOR position; // [esp+2Ch] [ebp-24h]
 
 	//float v39; // [esp+38h] [ebp-18h]
@@ -120,7 +116,7 @@ void __cdecl DynamicCOL_RunA()
 	float& v43 = v[1].y;
 	float& v44 = v[1].z;
 
-	dynacol_landtable = DynamicCOLArray_LandTable;
+	DynamicCOL* dynacol_landtable = DynamicCOLArray_LandTable;
 
 	if (!Camera_Data1)
 	{
@@ -256,26 +252,28 @@ void __cdecl DynamicCOL_RunA()
 		DynamicCOLArray_LandTable[landtable_i].Model = model;
 		DynamicCOLArray_LandTable[landtable_i].Entity = v5->Entity;
 
-		++landtable_i;
-
 		dynacol_landtable->Flags = v5->Flags;
 		++dynacol_landtable;
 		++DynamicCOLCount_B;
-		if (++DynamicCOLCount_B_Again >= 128)
+
+		if (static_cast<size_t>(++DynamicCOLCount_B_Again) >= dynacol_b.size())
 		{
 			break;
 		}
-		if ((__int16)DynamicCOLCount_B >= 1024)
+
+		if (DynamicCOLCount_B >= DynamicCOLArray_LandTable_Length)
 		{
 			njPopMatrix(1u);
 			return;
 		}
+
 	CONTINUE:
-		--v5;
-		if (landtable_i >= dynacol_a.size())
+		if (++landtable_i >= dynacol_a.size())
 		{
 			goto WHAT_FUCK;
 		}
+
+		--v5;
 	}
 
 	PrintDebug("overflow tears 0\n");
@@ -284,57 +282,64 @@ WHAT_FUCK:
 	njPopMatrix(1u);
 	LandTable_CollisionMeshCount = 0;
 	v35 = ColList2;
-	if (LandTableLoadedB == 1)
+
+	if (LandTableLoadedB != 1 || !CurrentLandTable)
 	{
-		if (CurrentLandTable)
+		return;
+	}
+
+	for (int i = 0; i < CurrentLandTable->COLCount; ++i)
+	{
+		auto v21 = &CurrentLandTable->Col[i];
+
+		if (!(v21->Flags & (ColFlags_WaterNoAlpha | ColFlags_Water | ColFlags_Solid)))
 		{
-			v21 = CurrentLandTable->Col;
-			v22 = CurrentLandTable->COLCount;
-			for (i = CurrentLandTable->COLCount; (__int16)v22 > 0; i = --v22)
+			continue;
+		}
+
+		v23 = v34;
+		v36 = LandTable_MinimumRadius;
+		if (v34 <= 0)
+		{
+			continue;
+		}
+
+		v24 = &va.y;
+		while (true)
+		{
+			v25 = v21->Center.x - *(v24 - 1);
+			v26 = v21->Center.y - *v24;
+			v27 = v21->Center.z - v24[1];
+			v28 = v27 * v27 + v26 * v26 + v25 * v25;
+			if (squareroot(v28) - v36 < v21->Radius)
 			{
-				if (v21->Flags & (ColFlags_WaterNoAlpha | ColFlags_Water | ColFlags_Solid))
-				{
-					v23 = v34;
-					v36 = LandTable_MinimumRadius;
-					if (v34 > 0)
-					{
-						v24 = &va.y;
-						while (true)
-						{
-							v25 = v21->Center.x - *(v24 - 1);
-							v26 = v21->Center.y - *v24;
-							v27 = v21->Center.z - v24[1];
-							v28 = v27 * v27 + v26 * v26 + v25 * v25;
-							if (squareroot(v28) - v36 < v21->Radius)
-							{
-								break;
-							}
-							--v23;
-							v24 += 3;
-							v36 = 40.0f;
-							if (v23 <= 0)
-							{
-								goto LABEL_38;
-							}
-						}
-						memcpy(v35, v21, sizeof(COL));
-						dynacol_landtable->Flags = v21->Flags;
-						dynacol_landtable->Entity = nullptr;
-						++v35;
-						dynacol_landtable->Model = v21->Model;
-						++dynacol_landtable;
-						++DynamicCOLCount_B;
-						if (++LandTable_CollisionMeshCount >= 128 || (__int16)DynamicCOLCount_B >= 1024)
-						{
-							return;
-						}
-					}
-				LABEL_38:
-					v22 = i;
-				}
-				++v21;
+				break;
+			}
+			--v23;
+			v24 += 3;
+			v36 = 40.0f;
+			if (v23 <= 0)
+			{
+				goto LABEL_38;
 			}
 		}
+
+		memcpy(v35, v21, sizeof(COL));
+		dynacol_landtable->Flags  = v21->Flags;
+		dynacol_landtable->Entity = nullptr;
+		++v35;
+		dynacol_landtable->Model = v21->Model;
+		++dynacol_landtable;
+		++DynamicCOLCount_B;
+
+		if (static_cast<size_t>(++LandTable_CollisionMeshCount) >= dynacol_b.size() ||
+		    DynamicCOLCount_B >= DynamicCOLArray_LandTable_Length)
+		{
+			return;
+		}
+
+	LABEL_38:
+		continue;
 	}
 }
 
@@ -354,6 +359,7 @@ void __cdecl DynamicCOL_RunB()
 		while (true)
 		{
 			//DynamicCOL* v3 = (DynamicCOL*)((char*)DynamicCOLArray_B + (char*)v2 - (char*)DynamicCOLArray_LandTable);
+			// TODO: add
 			auto v3 = &dynacol_b[landtable_i];
 
 			v3->Flags = v0->Flags;
