@@ -12,7 +12,7 @@ std::deque<UsedObject> object_array;
 
 NJS_OBJECT* __cdecl ObjectArray_GetFreeObject_r()
 {
-	auto pred = [](auto e) -> bool
+	const auto pred = [](const auto& e) -> bool
 	{
 		return e.used == false;
 	};
@@ -21,6 +21,8 @@ NJS_OBJECT* __cdecl ObjectArray_GetFreeObject_r()
 
 	if (it != object_array.end())
 	{
+		it->used = true;
+		*it->object = {};
 		return it->object;
 	}
 
@@ -47,13 +49,13 @@ int __cdecl ObjectArray_Remove_r(NJS_OBJECT* a1)
 		if (element.object == a1)
 		{
 			element.used = false;
-			break;
+			return result;
 		}
 
 		++result;
 	}
 
-	return result;
+	return -1;
 }
 
 #pragma endregion
@@ -63,59 +65,13 @@ DataPointer(int, LandTable_CollisionMeshCount, 0x03B36D3C);
 //DataPointer(int, LandTableLoadedA, 0x0091545C);
 DataPointer(int, LandTableLoadedB, 0x00915460);
 
-constexpr auto ColFlags_WaterNoAlpha = 0x40002u;
+constexpr auto ColFlags_WaterNoAlpha = 0x400000;
 
-std::vector<DynamicCOL> dynacol_a;
-std::vector<DynamicCOL> dynacol_b;
+static std::vector<DynamicCOL> dynacol_a;
+static std::vector<DynamicCOL> dynacol_b;
 
 void __cdecl DynamicCOL_RunA()
 {
-	float v1; // edx
-	float v2; // edx
-	float v3; // eax
-	float v4; // eax
-	DynamicCOL* v5; // ebx
-	NJS_OBJECT* model; // esi
-	NJS_MODEL_SADX* v7; // eax
-	float v8; // st7
-	float px; // st7
-	float py; // st6
-	float pz; // st5
-	Angle v12; // eax
-	Angle v13; // eax
-	Angle v14; // eax
-	int v15; // edx
-	float v16; // st4
-	float v18; // ST20_4
-	float v19; // ST1C_4
-	float v20; // ST18_4
-	int v23; // edi
-	float* v24 = nullptr; // esi
-	float v25 = 0.0f; // ST20_4
-	float v26 = 0.0f; // st7
-	float v27 = 0.0f; // st6
-	float v28 = 0.0f; // ST00_4
-	int v34 = 0; // [esp+14h] [ebp-3Ch]
-	COL* v35 = nullptr; // [esp+18h] [ebp-38h]
-	float v36 = 0.0f; // [esp+1Ch] [ebp-34h]
-	NJS_VECTOR position; // [esp+2Ch] [ebp-24h]
-
-	//float v39; // [esp+38h] [ebp-18h]
-	//float v40; // [esp+3Ch] [ebp-14h]
-	//float v41; // [esp+40h] [ebp-10h]
-	//float v42; // [esp+44h] [ebp-Ch]
-	//float v43; // [esp+48h] [ebp-8h]
-	//float v44; // [esp+4Ch] [ebp-4h]
-
-	// shit's fucked
-	NJS_VECTOR v[2] {};
-
-	NJS_VECTOR& va = v[0];
-
-	float& v42 = v[1].x;
-	float& v43 = v[1].y;
-	float& v44 = v[1].z;
-
 	DynamicCOL* dynacol_landtable = DynamicCOLArray_LandTable;
 
 	if (!Camera_Data1)
@@ -123,143 +79,142 @@ void __cdecl DynamicCOL_RunA()
 		return;
 	}
 
-	va.x = Camera_Data1->Position.x;
-	v1 = Camera_Data1->Position.y;
-	va.z = Camera_Data1->Position.z;
-	va.y = v1;
-	v34 = 1;
+	NJS_VECTOR v[2] {};
+
+	v[0] = Camera_Data1->Position;
+
+	int player_count = 1;
 
 	if (EntityData1Ptrs[0])
 	{
-		va.x = EntityData1Ptrs[0]->Position.x;
-		v2 = EntityData1Ptrs[0]->Position.y;
-		va.z = EntityData1Ptrs[0]->Position.z;
-		va.y = v2;
+		v[0] = EntityData1Ptrs[0]->Position;
+
 		if (EntityData1Ptrs[1])
 		{
-			v42 = EntityData1Ptrs[1]->Position.x;
-			v3 = EntityData1Ptrs[1]->Position.z;
-			v43 = EntityData1Ptrs[1]->Position.y;
-			v44 = v3;
-			v34 = 2;
+			++player_count;
+			v[1] = EntityData1Ptrs[1]->Position;
 		}
 	}
 	else if (EntityData1Ptrs[1])
 	{
-		va.x = EntityData1Ptrs[1]->Position.x;
-		v4 = EntityData1Ptrs[1]->Position.z;
-		va.y = EntityData1Ptrs[1]->Position.y;
-		va.z = v4;
+		v[0] = EntityData1Ptrs[1]->Position;
 	}
 
 	DynamicCOLCount_B = 0;
 	DynamicCOLCount_B_Again = 0;
+	//dynacol_b.clear();
+
 	njPushMatrix(nullptr);
 
 	if (!DynamicCOLCount || dynacol_a.empty())
 	{
-		goto WHAT_FUCK;
+		goto WHAT_FUCK;  // NOLINT
 	}
 
-	v5 = &dynacol_a.back();
+	DynamicCOL* v5 = &dynacol_a.back();
 
-	size_t landtable_i = 0;
+	size_t dynacol_a_i = 0;
 
 	while (true)
 	{
-		model = v5->Model;
+		NJS_OBJECT* model = v5->Model;
 		if (!(v5->Entity->Data1->Status & Status_Ball))
 		{
-			goto CONTINUE;
+			goto CONTINUE;  // NOLINT
 		}
+
+		float px;
+		float py;
+		float pz;
 
 		if (v5->Flags & ColFlags_UseRotation)
 		{
 			njUnitMatrix(nullptr);
-			v12 = model->ang[2];
-			if (v12)
+
+			Angle rz = model->ang[2];
+			if (rz)
 			{
-				njRotateZ(nullptr, (unsigned __int16)v12);
+				njRotateZ(nullptr, (unsigned __int16)rz);
 			}
-			v13 = model->ang[0];
-			if (v13)
+
+			Angle rx = model->ang[0];
+			if (rx)
 			{
-				njRotateX(nullptr, (unsigned __int16)v13);
+				njRotateX(nullptr, (unsigned __int16)rx);
 			}
-			v14 = model->ang[1];
-			if (v14)
+
+			Angle ry = model->ang[1];
+			if (ry)
 			{
-				njRotateY(nullptr, (unsigned __int16)v14);
+				njRotateY(nullptr, (unsigned __int16)ry);
 			}
-			njCalcPoint(nullptr, &model->basicdxmodel->center, &position);
-			px = position.x + model->pos[0];
-			py = position.y + model->pos[1];
-			pz = position.z + model->pos[2];
+
+			NJS_VECTOR point {}; // [esp+2Ch] [ebp-24h]
+			njCalcPoint(nullptr, &model->basicdxmodel->center, &point);
+
+			px = point.x + model->pos[0];
+			py = point.y + model->pos[1];
+			pz = point.z + model->pos[2];
 		}
 		else
 		{
-			v7 = model->basicdxmodel;
-			v8 = v7->center.x;
-			auto center = &v7->center;
+			NJS_MODEL_SADX* v7 = model->basicdxmodel;
+			const float v8 = v7->center.x;
+			const auto center = &v7->center;
 			px = v8 + model->pos[0];
 			py = center->y + model->pos[1];
 			pz = center->z + model->pos[2];
 		}
 
-		v15 = v34;
-		v16 = LandTable_MinimumRadius;
+		int v15 = player_count;
+		float v16 = LandTable_MinimumRadius;
 
-		if (v34 <= 0)
+		if (player_count <= 0)
 		{
-			goto CONTINUE;
+			goto CONTINUE;  // NOLINT
 		}
 
-		auto v17 = &va.y;
+		NJS_VECTOR* v17 = &v[0];
 
 		while (true)
 		{
-			v18 = *(v17 - 1) - px;
-			v19 = *v17 - py;
-			v20 = v17[1] - pz;
-			if ((v16 + model->basicdxmodel->r) * (v16 + model->basicdxmodel->r) > v20 * v20 + v19 * v19 + v18 * v18)
+			const float dx = v17->x - px;
+			const float dy = v17->y - py;
+			const float dz = v17->z - pz;
+
+			auto dxmodel = model->getbasicdxmodel();
+
+			if ((v16 + dxmodel->r) * (v16 + dxmodel->r) > dz * dz + dy * dy + dx * dx)
 			{
 				break;
 			}
-			v16 = 40.0;
+
+			v16 = 40.0f;
 			--v15;
-			v17 += 3;
+			++v17;
+
 			if (v15 <= 0)
 			{
-				goto CONTINUE;
+				goto CONTINUE;  // NOLINT
 			}
 		}
 
-		/*v29 = (int*)((char*)DynamicCOLArray_B + (char*)dynacol_landtable - (char*)DynamicCOLArray_LandTable);
-		*v29 = v5->Flags;
-		v30 = v5->Entity;
-		v29[1] = (int)v5->Model;
-		v29[2] = (int)v30;*/
+		*dynacol_landtable = *v5;
 
-		auto b = &dynacol_b[landtable_i];
+		//dynacol_b.push_back(*v5);
 
-		b->Flags = v5->Flags;
-		b->Model = v5->Model;
-		b->Entity = v5->Entity;
+		dynacol_b.resize(DynamicCOLCount_B + 1);
+		dynacol_b[DynamicCOLCount_B] = *v5;
 
-		//*(NJS_OBJECT * *)((char*)& DynamicCOLArray_LandTable[0].Model + (char*)dynacol_landtable - (char*)DynamicCOLArray_LandTable) = v6;
-		//*(ObjectMaster * *)((char*)& DynamicCOLArray_LandTable[0].Entity + (char*)dynacol_landtable - (char*)DynamicCOLArray_LandTable) = v31;
-
-		DynamicCOLArray_LandTable[landtable_i].Model = model;
-		DynamicCOLArray_LandTable[landtable_i].Entity = v5->Entity;
-
-		dynacol_landtable->Flags = v5->Flags;
 		++dynacol_landtable;
 		++DynamicCOLCount_B;
+		++DynamicCOLCount_B_Again;
 
-		if (static_cast<size_t>(++DynamicCOLCount_B_Again) >= dynacol_b.size())
+
+		/*if (static_cast<size_t>(DynamicCOLCount_B_Again) >= dynacol_b.size())
 		{
 			break;
-		}
+		}*/
 
 		if (DynamicCOLCount_B >= DynamicCOLArray_LandTable_Length)
 		{
@@ -268,20 +223,21 @@ void __cdecl DynamicCOL_RunA()
 		}
 
 	CONTINUE:
-		if (++landtable_i >= dynacol_a.size())
-		{
-			goto WHAT_FUCK;
-		}
-
 		--v5;
+		if (++dynacol_a_i >= dynacol_a.size())
+		{
+			goto WHAT_FUCK;  // NOLINT
+		}
 	}
 
+	/*
 	PrintDebug("overflow tears 0\n");
+	*/
 
 WHAT_FUCK:
 	njPopMatrix(1u);
 	LandTable_CollisionMeshCount = 0;
-	v35 = ColList2;
+	COL* v35 = ColList2;
 
 	if (LandTableLoadedB != 1 || !CurrentLandTable)
 	{
@@ -297,27 +253,32 @@ WHAT_FUCK:
 			continue;
 		}
 
-		v23 = v34;
-		v36 = LandTable_MinimumRadius;
-		if (v34 <= 0)
+		int v23 = player_count;
+		float v36 = LandTable_MinimumRadius;
+
+		if (player_count <= 0)
 		{
 			continue;
 		}
 
-		v24 = &va.y;
+		auto v24 = &v[0];
+
 		while (true)
 		{
-			v25 = v21->Center.x - *(v24 - 1);
-			v26 = v21->Center.y - *v24;
-			v27 = v21->Center.z - v24[1];
-			v28 = v27 * v27 + v26 * v26 + v25 * v25;
-			if (squareroot(v28) - v36 < v21->Radius)
+			const float dx       = v21->Center.x - v24->x;
+			const float dy       = v21->Center.y - v24->y;
+			const float dz       = v21->Center.z - v24->z;
+			const float distance = dz * dz + dy * dy + dx * dx;
+
+			if (squareroot(distance) - v36 < v21->Radius)
 			{
 				break;
 			}
+
 			--v23;
-			v24 += 3;
+			++v24;
 			v36 = 40.0f;
+
 			if (v23 <= 0)
 			{
 				goto LABEL_38;
@@ -331,9 +292,10 @@ WHAT_FUCK:
 		dynacol_landtable->Model = v21->Model;
 		++dynacol_landtable;
 		++DynamicCOLCount_B;
+		++LandTable_CollisionMeshCount;
 
-		if (static_cast<size_t>(++LandTable_CollisionMeshCount) >= dynacol_b.size() ||
-		    DynamicCOLCount_B >= DynamicCOLArray_LandTable_Length)
+		if (/*static_cast<size_tLandTable_CollisionMeshCount) >= dynacol_b.size() ||
+		    */DynamicCOLCount_B >= DynamicCOLArray_LandTable_Length)
 		{
 			return;
 		}
@@ -347,8 +309,10 @@ void __cdecl DynamicCOL_RunB()
 {
 	short v1 = 0;
 	DynamicCOL* v2 = DynamicCOLArray_LandTable;
+
 	DynamicCOLCount_B = 0;
 	DynamicCOLCount_B_Again = 0;
+	dynacol_b.clear();
 
 	size_t landtable_i = 0;
 
@@ -359,13 +323,8 @@ void __cdecl DynamicCOL_RunB()
 		while (true)
 		{
 			//DynamicCOL* v3 = (DynamicCOL*)((char*)DynamicCOLArray_B + (char*)v2 - (char*)DynamicCOLArray_LandTable);
-			// TODO: add
-			auto v3 = &dynacol_b[landtable_i];
 
-			v3->Flags = v0->Flags;
-			ObjectMaster* v4 = v0->Entity;
-			v3->Model = v0->Model;
-			v3->Entity = v4;
+			dynacol_b.push_back(*v0);
 
 			//*(NJS_OBJECT * *)((char*)& DynamicCOLArray_LandTable[0].Model + (char*)v2
 			//				  - (char*)DynamicCOLArray_LandTable) = v0->Model;
@@ -381,10 +340,12 @@ void __cdecl DynamicCOL_RunB()
 			++v2;
 			++v1;
 
-			if (DynamicCOLCount_B_Again > 0 && static_cast<size_t>(++DynamicCOLCount_B_Again) >= dynacol_b.size())
+			++DynamicCOLCount_B_Again;
+
+			/*if (static_cast<size_t>(DynamicCOLCount_B_Again) >= dynacol_b.size())
 			{
 				break;
-			}
+			}*/
 
 			if (v1 < DynamicCOLArray_LandTable_Length)
 			{
@@ -395,86 +356,87 @@ void __cdecl DynamicCOL_RunB()
 				}
 			}
 			DynamicCOLCount_B = v1;
-			goto WHAT_FUCK;
+			goto WHAT_FUCK;  // NOLINT
 		}
 
+		/*
 		DynamicCOLCount_B = v1;
 		PrintDebug("overflow tears 1\n");
 		v1 = DynamicCOLCount_B;
+		*/
 	}
 
 WHAT_FUCK:
 	LandTable_CollisionMeshCount = 0;
 	COL* v6 = ColList2;
-	if (LandTableLoadedB == 1)
+	if (LandTableLoadedB == 1 && CurrentLandTable)
 	{
-		if (CurrentLandTable)
+		COL* v7 = CurrentLandTable->Col;
+		for (int i = CurrentLandTable->COLCount; i > 0; --i)
 		{
-			COL* v7 = CurrentLandTable->Col;
-			for (int i = CurrentLandTable->COLCount; i > 0; --i)
+			if (v7->Flags & (ColFlags_WaterNoAlpha | ColFlags_Water | ColFlags_Solid))
 			{
-				if (v7->Flags & (ColFlags_WaterNoAlpha | ColFlags_Water | ColFlags_Solid))
+				memcpy(v6, v7, sizeof(COL));
+				v2->Flags  = v7->Flags;
+				v2->Entity = nullptr;
+				++v6;
+				v2->Model = v7->Model;
+				++v2;
+				++v1;
+				DynamicCOLCount_B = v1;
+				++LandTable_CollisionMeshCount;
+
+				if (static_cast<size_t>(LandTable_CollisionMeshCount) >= dynacol_b.size() || v1 >= DynamicCOLArray_LandTable_Length)
 				{
-					memcpy(v6, v7, sizeof(COL));
-					v2->Flags = v7->Flags;
-					v2->Entity = nullptr;
-					++v6;
-					v2->Model = v7->Model;
-					++v2;
-					++v1;
-					DynamicCOLCount_B = v1;
-					if (static_cast<size_t>(++LandTable_CollisionMeshCount) >= dynacol_b.size() || v1 >= DynamicCOLArray_LandTable_Length)
-					{
-						return;
-					}
+					return;
 				}
-				++v7;
 			}
+			++v7;
 		}
 	}
 }
 
 void __cdecl sub_43ACD0_r(float x, float y, float z, float radius)
 {
-	float v8; // st5
-	NJS_VECTOR a3a; // [esp+10h] [ebp-Ch]
-
 	DynamicCOL* v5 = DynamicCOLArray_LandTable;
 	DynamicCOLCount_B = 0;
 	njPushMatrix(nullptr);
 
 	//DynamicCOL* v4 = (DynamicCOL*)((char*)& DynamicCOLArray_LandTable[DynamicCOLCount_B_Again + 1023] + 8);
-	if (!DynamicCOLCount_B_Again)
+	if (DynamicCOLCount_B_Again < 1)
 	{
-
 	LABEL_14:
 		njPopMatrix(1u);
-		if (LandTableLoadedB == 1)
+		if (LandTableLoadedB == 1 && CurrentLandTable)
 		{
-			if (CurrentLandTable)
+			for (int i = 0; i < LandTable_CollisionMeshCount; ++i)
 			{
-				COL* col = ColList2;
-				for (int i = LandTable_CollisionMeshCount; i > 0; --i)
+				COL* col = &ColList2[i];
+
+				if (!(col->Flags & (ColFlags_WaterNoAlpha | ColFlags_Water | ColFlags_Solid)))
 				{
-					if (col->Flags & (ColFlags_WaterNoAlpha | ColFlags_Water | ColFlags_Solid))
+					continue;
+				}
+
+				const float dy = col->Center.y - y;
+				const float dz = col->Center.z - z;
+				const float distance = dz * dz + dy * dy + (col->Center.x - x) * (col->Center.x - x);
+
+				if (squareroot(distance) - radius < col->Radius)
+				{
+					NJS_OBJECT* v28 = col->Model;
+
+					v5->Flags  = col->Flags;
+					v5->Entity = nullptr;
+					v5->Model  = v28;
+
+					++v5;
+					++DynamicCOLCount_B;
+
+					if (DynamicCOLCount_B >= DynamicCOLArray_LandTable_Length)
 					{
-						float v25 = col->Center.y - y;
-						float v26 = col->Center.z - z;
-						float v27 = v26 * v26 + v25 * v25 + (col->Center.x - x) * (col->Center.x - x);
-						if (squareroot(v27) - radius < col->Radius)
-						{
-							NJS_OBJECT* v28 = col->Model;
-							v5->Flags = col->Flags;
-							v5->Entity = nullptr;
-							v5->Model = v28;
-							++v5;
-							if (++DynamicCOLCount_B >= DynamicCOLArray_LandTable_Length)
-							{
-								break;
-							}
-						}
+						break;
 					}
-					++col;
 				}
 			}
 		}
@@ -491,49 +453,60 @@ void __cdecl sub_43ACD0_r(float x, float y, float z, float radius)
 	while (true)
 	{
 		NJS_OBJECT* v6 = v4->Model;
+		float v8; // st5
 
 		if (v4->Flags & ColFlags_UseRotation)
 		{
 			njUnitMatrix(nullptr);
-			Angle v11 = v6->ang[2];
-			if (v11)
+
+			Angle rz = v6->ang[2];
+			if (rz)
 			{
-				njRotateZ(nullptr, (unsigned __int16)v11);
+				njRotateZ(nullptr, (unsigned __int16)rz);
 			}
-			Angle v12 = v6->ang[0];
-			if (v12)
+
+			Angle rx = v6->ang[0];
+			if (rx)
 			{
-				njRotateX(nullptr, (unsigned __int16)v12);
+				njRotateX(nullptr, (unsigned __int16)rx);
 			}
-			Angle v13 = v6->ang[1];
-			if (v13)
+
+			Angle ry = v6->ang[1];
+			if (ry)
 			{
-				njRotateY(nullptr, (unsigned __int16)v13);
+				njRotateY(nullptr, (unsigned __int16)ry);
 			}
-			njCalcPoint(nullptr, &v6->basicdxmodel->center, &a3a);
-			v14 = x - (a3a.x + v6->pos[0]);
-			v15 = y - (a3a.y + v6->pos[1]);
-			v8 = a3a.z;
+
+			NJS_VECTOR point; // [esp+10h] [ebp-Ch]
+			njCalcPoint(nullptr, &v6->basicdxmodel->center, &point);
+
+			v14 = x - (point.x + v6->pos[0]);
+			v15 = y - (point.y + v6->pos[1]);
+			v8 = point.z;
 		}
 		else
 		{
-			auto v7   = (float*)v6->basicdxmodel;
-			float v9  = x - (v7[6] + v6->pos[0]);
-			float v10 = y - (v7[7] + v6->pos[1]);
-			v8 = v7[8];
+			//auto v7 = (float*)v6->basicdxmodel;
+			//float v9  = x - (v7[6] + v6->pos[0]);
+			//float v10 = y - (v7[7] + v6->pos[1]);
+			const auto& center = v6->basicdxmodel->center;
+			v14 = center.x; // HACK
+			v15 = center.y; // HACK
+			v8 = center.z;
 		}
 
-		// TODO: oh fuck
+		// lol ida
 		//if (!(v19 | v20))
 
-		float v16 = z - (v8 + v6->pos[2]);
-		float v17 = radius + v6->basicdxmodel->r + 30.0f;
+		const float v16 = z - (v8 + v6->pos[2]);
+		const float v17 = radius + v6->basicdxmodel->r + 30.0f;
 
 		// ghidra
 		v8 = (x - v14) * (x - v14) + (y - v15) * (y - v15) + v16 * v16;
+		const auto length = v17 * v17;
 
 		// ghidra
-		if ((unsigned short)((unsigned short)(v17 * v17 < v8) << 8 | (unsigned short)(v17 * v17 == v8) << 0xe) == 0)
+		if (length <= v8)
 		{
 			ObjectMaster* v21 = v4->Entity;
 
@@ -542,16 +515,17 @@ void __cdecl sub_43ACD0_r(float x, float y, float z, float radius)
 			v5->Entity = v21;
 
 			++v5;
+			++DynamicCOLCount_B;
 
-			if (++DynamicCOLCount_B >= DynamicCOLArray_LandTable_Length)
+			if (DynamicCOLCount_B >= DynamicCOLArray_LandTable_Length)
 			{
 				break;
 			}
 		}
 
-		if (++i < DynamicCOLArray_LandTable_Length)
+		if (++i >= dynacol_b.size())
 		{
-			goto LABEL_14;
+			goto LABEL_14;  // NOLINT
 		}
 
 		--v4;
@@ -587,7 +561,7 @@ void __cdecl DynamicCOL_Add_r(uint32_t flags, ObjectMaster* entity, NJS_OBJECT* 
 
 void __cdecl DynamicCOL_Remove_r(ObjectMaster* entity, NJS_OBJECT* model)
 {
-	auto pred = [entity, model](auto a) -> bool
+	auto pred = [entity, model](const auto& a) -> bool
 	{
 		return a.Entity == entity && a.Model == model;
 	};
@@ -600,6 +574,28 @@ void __cdecl DynamicCOL_Remove_r(ObjectMaster* entity, NJS_OBJECT* model)
 		dynacol_a.erase(it);
 		DynamicCOLCount -= DynamicCOLCount - static_cast<Uint16>(dynacol_a.size());
 	}
+}
+
+void __cdecl sub_43A210_r();
+static Trampoline sub_43A210_t(0x0043A210, 0x0043A217, sub_43A210_r);
+void __cdecl sub_43A210_r()
+{
+	auto original = reinterpret_cast<decltype(sub_43A210_r)*>(sub_43A210_t.Target());
+	original();
+
+	dynacol_a.clear();
+	dynacol_b.clear();
+}
+
+void __cdecl LandTableObj_Delete_r(ObjectMaster* obj);
+static Trampoline LandTableObj_Delete_t(0x0043A500, 0x0043A507, LandTableObj_Delete_r);
+void __cdecl LandTableObj_Delete_r(ObjectMaster* obj)
+{
+	auto original = reinterpret_cast<decltype(LandTableObj_Delete_r)*>(LandTableObj_Delete_t.Target());
+	original(obj);
+
+	dynacol_a.clear();
+	dynacol_b.clear();
 }
 
 void dynacol_init()
