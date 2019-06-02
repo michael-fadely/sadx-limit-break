@@ -86,6 +86,7 @@
     <ClInclude Include="..\sadx-mod-loader\libmodutils\Trampoline.h" />
     <ClInclude Include="clip.h" />
     <ClInclude Include="collision.h" />
+    <ClInclude Include="dynacol.h" />
     <ClInclude Include="misc.h" />
     <ClInclude Include="object.h" />
     <ClInclude Include="set.h" />
@@ -96,6 +97,7 @@
     <ClCompile Include="..\sadx-mod-loader\libmodutils\Trampoline.cpp" />
     <ClCompile Include="clip.cpp" />
     <ClCompile Include="collision.cpp" />
+    <ClCompile Include="dynacol.cpp" />
     <ClCompile Include="mod.cpp" />
     <ClCompile Include="object.cpp" />
     <ClCompile Include="set.cpp" />

@@ -154,7 +154,7 @@ void clip_init()
 void clip_reset(float limit)
 {
 	// HACK: this halving here "fixes" (covers up) the platforms in red mountain disappearing, etc
-	const auto f = std::min(-LevelDrawDistance.Maximum, -SkyboxDrawDistance.Maximum) * 0.5f;
+	const auto f = std::min(-LevelDrawDistance.Maximum, -SkyboxDrawDistance.Maximum);
 
 	clip_current = f * f;
 	clip_limit   = limit;

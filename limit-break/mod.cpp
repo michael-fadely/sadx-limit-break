@@ -68,9 +68,9 @@ extern "C"
 	{
 		WriteCall(reinterpret_cast<void*>(0x00415A60), InitSpriteTable_r);
 		WriteJump(LoadSkyboxObject, LoadSkyboxObject_r);
-
 		WriteJump(late_alloca_init, late_alloca_init_r);
 
+		dynacol_init();
 		object_init();
 		collision_init();
 		clip_init();

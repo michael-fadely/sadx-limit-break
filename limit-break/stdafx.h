@@ -14,3 +14,4 @@
 #include "collision.h"
 #include "textures.h"
 #include "set.h"
+#include "dynacol.h"
