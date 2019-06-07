@@ -76,6 +76,11 @@ extern "C"
 		clip_init();
 		textures_init();
 		set_init();
+
+		// Bridge in EC01
+		WriteData((float**)(0x00501D3A + 2), &clip_current);
+		WriteData((float**)(0x00501D53 + 2), &clip_current);
+		WriteData((float**)(0x00501D90 + 2), &clip_current);
 	}
 
 	__declspec(dllexport) void __cdecl OnFrame()
